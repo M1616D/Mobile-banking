@@ -11,7 +11,7 @@
   var user = {
     name: 'Bereket Mamuye Beyene',
     short: 'Bereket',
-    account: '1********3619',
+    account: '1******3619',
     full: '1000407533619',
     balance: 5005.71,
     lastSignIn: 'Sep 22, 2026 - 06:27 PM',
@@ -20,32 +20,32 @@
   };
 
   var accounts = [
-    { id: 'sav1', type: 'savings', label: 'Saving Account 1********3619', account: '1********3619', full: '1000407533619', balance: 5005.71 },
-    { id: 'sav2', type: 'savings', label: 'Saving Account 1********7214', account: '1********7214', full: '1000123457214', balance: 4230.10 },
-    { id: 'cur1', type: 'current', label: 'Current Account 1********5580', account: '1********5580', full: '1000123455580', balance: 90120.00 },
+    { id: 'sav1', type: 'savings', label: 'Saving Account 1******3619', account: '1******3619', full: '1000407533619', balance: 5005.71 },
+    { id: 'sav2', type: 'savings', label: 'Saving Account 1******7214', account: '1******7214', full: '1000123457214', balance: 4230.10 },
+    { id: 'cur1', type: 'current', label: 'Current Account 1******5580', account: '1******5580', full: '1000123455580', balance: 90120.00 },
     { id: 'birr', type: 'CBEBirr Wallet', label: 'CBEBirr Wallet 8********214', account: '8********214', full: '0911234214', balance: 640.00 }
   ];
 
   /* -------------------------------------------------------- transactions */
   var transactions = [
-    { id: 't1', name: 'Yfuri Hanna', date: '2026-09-21T14:22', amount: -546.00, tag: 'ACCOUNT TO ACCOUNT', to: 'Yfuri Hanna B35-45 Selam C ETB-3257', toAcc: '1********3257', charges: true, ref: 'FT26264LRXTX' },
-    { id: 't2', name: 'Hizkel Wana', date: '2026-09-18T13:07', amount: -550.00, tag: 'ACCOUNT TO ACCOUNT', to: 'Hizkel Wana Waza', toAcc: '1********2238', charges: true, ref: 'FT26188KDQPL' },
-    { id: 't3', name: 'W/senbet Wondimu', date: '2026-09-16T20:09', amount: 2000.00, tag: 'ACCOUNT TO ACCOUNT', to: 'Bereket Mamuye', toAcc: '1********3619', ref: 'FT25973BMTAX' },
-    { id: 't4', name: 'Eyob Sintayehu', date: '2026-09-15T21:38', amount: 3500.00, tag: 'ACCOUNT TO ACCOUNT', to: 'Bereket Mamuye', toAcc: '1********3619', ref: 'FT25844EYQRN' },
-    { id: 't5', name: 'Mamuye Beyene', date: '2026-09-14T00:00', amount: 600.00, tag: 'TRANSFER', to: 'Bereket Mamuye', toAcc: '1********3619', ref: 'FT25710MMABE' },
+    { id: 't1', name: 'Yfuri Hanna', date: '2026-09-21T14:22', amount: -546.00, tag: 'ACCOUNT TO ACCOUNT', to: 'Yfuri Hanna B35-45 Selam C ETB-3257', toAcc: '1******3257', charges: true, ref: 'FT26264LRXTX', toAccRaw: '1000555663257' },
+    { id: 't2', name: 'Hizkel Wana', date: '2026-09-18T13:07', amount: -550.00, tag: 'ACCOUNT TO ACCOUNT', to: 'Hizkel Wana Waza', toAcc: '1******2238', charges: true, ref: 'FT26188KDQPL', toAccRaw: '1000555662238' },
+    { id: 't3', name: 'Wisenbet Wondimu', date: '2026-09-16T20:09', amount: 2000.00, tag: 'ACCOUNT TO ACCOUNT', to: 'Bereket Mamuye', toAcc: '1******3619', ref: 'FT25973BMTAX' },
+    { id: 't4', name: 'Eyob Sintayehu', date: '2026-09-15T21:38', amount: 3500.00, tag: 'ACCOUNT TO ACCOUNT', to: 'Bereket Mamuye', toAcc: '1******3619', ref: 'FT25844EYQRN' },
+    { id: 't5', name: 'Mamuye Beyene', date: '2026-09-14T00:00', amount: 600.00, tag: 'TRANSFER', to: 'Bereket Mamuye', toAcc: '1******3619', ref: 'FT25710MMABE' },
     { id: 't6', name: 'Ethio Telecom', date: '2026-09-12T19:04', amount: -50.00, tag: 'AIRTIME', to: '0911****214', ref: 'FT25103ATTOP' },
     { id: 't7', name: 'Safaricom Topup', date: '2026-09-09T11:26', amount: -100.00, tag: 'AIRTIME', to: '0912****880', ref: 'FT25012SFTUP' },
     { id: 't8', name: 'Ethiopian Electric Utility', date: '2026-09-05T16:41', amount: -320.00, tag: 'BILL PAYMENT', to: 'Meter 451****12', ref: 'FT24991EEUPM' },
     { id: 't9', name: 'TeleBirr Wallet', date: '2026-09-02T08:12', amount: -1000.00, tag: 'WALLET', to: '0911****214', ref: 'FT24932TBBTR' },
-    { id: 't10', name: 'Anisa Mudesir Suleyman', date: '2026-08-30T15:55', amount: -120.00, tag: 'ACCOUNT TO ACCOUNT', to: 'Anisa Mudesir Suleyman', toAcc: '1********4719', charges: true, ref: 'FT24810AMLWD' }
+    { id: 't10', name: 'Anisa Mudesir Suleyman', date: '2026-08-30T15:55', amount: -120.00, tag: 'ACCOUNT TO ACCOUNT', to: 'Anisa Mudesir Suleyman', toAcc: '1******4719', charges: true, ref: 'FT24810AMLWD', toAccRaw: '1000555664719' }
   ];
 
   /* -------------------------------------------- saved / recent recipients */
   var recents = [
-    { id: 'r1', name: 'Hizkel Wana Waza', account: '1********2238', bank: 'Commercial Bank of Ethiopia' },
-    { id: 'r2', name: 'Timbertu Wujira Wonji', account: '1********3375', bank: 'Commercial Bank of Ethiopia' },
-    { id: 'r3', name: 'Yared Wendimagegnehu', account: '1********7579', bank: 'Commercial Bank of Ethiopia' },
-    { id: 'r4', name: 'Anisa Mudesir Suleyman', account: '1********4719', bank: 'Commercial Bank of Ethiopia' }
+    { id: 'r1', name: 'Hizkel Wana Waza', account: '1******2238', raw: '1000555662238', bank: 'Commercial Bank of Ethiopia' },
+    { id: 'r2', name: 'Timbertu Wujira Wonji', account: '1******3375', raw: '1000555663375', bank: 'Commercial Bank of Ethiopia' },
+    { id: 'r3', name: 'Yared Wendimagegnehu', account: '1******7579', raw: '1000555667579', bank: 'Commercial Bank of Ethiopia' },
+    { id: 'r4', name: 'Anisa Mudesir Suleyman', account: '1******4719', raw: '1000555664719', bank: 'Commercial Bank of Ethiopia' }
   ];
 
   var beneficiaries = [];
@@ -136,7 +136,7 @@
   /* ------------------------------------------------------- other transfers */
   var otherTransfers = [
     { id: 'wallet', name: 'Wallet', sub: 'Wallet', icon: 'wallet', tone: '#7b2cbf', route: 'wallet' },
-    { id: 'banks', name: 'Transfer to Other Banks', sub: 'Transfer to Other Banks', icon: 'transferOut', tone: '#ef7d1a', route: 'banksList' },
+    { id: 'banks', name: 'Transfer to Other Banks', sub: 'Transfer to Other Banks', icon: 'transferOut', tone: '#ef7d1a', route: 'accountValidation' },
     { id: 'micro', name: 'Transfer to Micro Finances', sub: 'Transfer to Micro Finances', icon: 'moneyBag', tone: '#7b2cbf', route: 'microForm' },
     { id: 'sacco', name: 'SACCO', sub: 'SACCO', icon: 'coins', tone: '#7b2cbf', route: 'saccos' }
   ];
@@ -260,6 +260,70 @@
     { id: 'atm', name: 'CBE ATM Card' }
   ];
 
+  /* ------------------------------------------------------ branches / agents */
+  var branches = [
+    { id: 'b1', name: 'Bole Branch', city: 'Addis Ababa', hours: '8:00 AM – 5:00 PM' },
+    { id: 'b2', name: 'Kera Branch', city: 'Addis Ababa', hours: '8:00 AM – 5:00 PM' },
+    { id: 'b3', name: 'Meskel Flower Branch', city: 'Addis Ababa', hours: '8:00 AM – 5:00 PM' },
+    { id: 'b4', name: 'Piassa Branch', city: 'Addis Ababa', hours: '8:00 AM – 4:30 PM' },
+    { id: 'b5', name: 'Adama Branch', city: 'Adama', hours: '8:00 AM – 5:00 PM' },
+    { id: 'b6', name: 'Hawassa Branch', city: 'Hawassa', hours: '8:00 AM – 5:00 PM' },
+    { id: 'b7', name: 'Mekelle Branch', city: 'Mekelle', hours: '8:00 AM – 5:00 PM' },
+    { id: 'b8', name: 'Bahir Dar Branch', city: 'Bahir Dar', hours: '8:00 AM – 5:00 PM' }
+  ];
+
+  var agents = [
+    { id: 'a1', name: 'AGT-100231 Bole', city: 'Addis Ababa', hours: 'Open now' },
+    { id: 'a2', name: 'AGT-100455 Kera', city: 'Addis Ababa', hours: 'Open now' },
+    { id: 'a3', name: 'AGT-101002 Merkato', city: 'Addis Ababa', hours: 'Open now' },
+    { id: 'a4', name: 'AGT-102233 Adama', city: 'Adama', hours: 'Open now' },
+    { id: 'a5', name: 'AGT-105511 Hawassa', city: 'Hawassa', hours: 'Closed' },
+    { id: 'a6', name: 'AGT-107744 Mekelle', city: 'Mekelle', hours: 'Open now' }
+  ];
+
+  var rates = [
+    { cur: 'USD', name: 'US Dollar', buy: 143.5211, sell: 146.3913 },
+    { cur: 'EUR', name: 'Euro', buy: 156.8042, sell: 159.9403 },
+    { cur: 'GBP', name: 'Pound Sterling', buy: 182.2201, sell: 185.8645 },
+    { cur: 'AED', name: 'UAE Dirham', buy: 38.9714, sell: 39.7508 },
+    { cur: 'SAR', name: 'Saudi Riyal', buy: 38.1812, sell: 38.9451 },
+    { cur: 'CNY', name: 'Chinese Yuan', buy: 19.8041, sell: 20.2002 },
+    { cur: 'KES', name: 'Kenyan Shilling', buy: 1.1062, sell: 1.1283 }
+  ];
+
+  /* ------------------------------------------------------- home shortcuts
+     Everything the home page links to. The first six are the cards in the
+     reference screenshot; the rest are the extra tools the app also carries. */
+  var homeTileIcons = [
+    { title: 'Mini Statement', key: 'miniStatement', icon: 'statement', goto: 'miniStatement' },
+    { title: 'Cash Out', key: 'cashOut', icon: 'cashOut', goto: 'cashOut' },
+    { title: 'Bill Share', key: 'billShare', icon: 'splitShare', goto: 'billShare' },
+    { title: 'Cards', key: 'cards', icon: 'cardStack', goto: 'cards' }
+  ];
+
+  var homeCards = [
+    { title: 'CBE Transfer', sub: 'Send Money', subKey: 'sendMoney', icon: 'arrowUpRight', tone: 'pink', goto: 'cbeTransfer' },
+    { title: 'Receive', sub: 'Get Paid', subKey: 'getPaid', icon: 'arrowDownLeft', tone: 'green', goto: 'receive' },
+    { title: 'Airtime', key: 'airtime', icon: 'phone', center: true, goto: 'airtime' },
+    { title: 'Other Transfers', key: 'otherTransfers', icon: 'sync', center: true, goto: 'otherTransfers' },
+    { title: 'CBEBirr', key: 'cbeBirr', icon: 'cardStack', center: true, goto: 'cbebirr' },
+    { title: 'Bills & Utilities', key: 'billsUtilities', icon: 'receipt', center: true, goto: 'bills' }
+  ];
+
+  /* the extra functional buttons the home page also carries */
+  var homeExtras = [
+    { title: 'CBE Fast Loan', sub: 'Instant pre-approved loan', icon: 'rocket', tone: 'purple', goto: 'fastLoan' },
+    { title: 'Shopping', sub: 'Pay online merchants', icon: 'cart', tone: 'purple', goto: 'shopping' },
+    { title: 'Tax Payment', sub: 'Ministry of Revenue', icon: 'receipt', tone: 'purple', goto: 'taxPayment' },
+    { title: 'Pay Merchant', sub: 'Merchant code payment', icon: 'store', tone: 'purple', goto: 'payMerchant' },
+    { title: 'Forex', sub: 'Exchange rates', icon: 'exchangeRate', tone: 'purple', goto: 'fx' },
+    { title: 'Loan Products', sub: 'Choose your loan', icon: 'coins', tone: 'purple', goto: 'loanProducts' },
+    { title: 'Micro Finance', sub: 'Transfer to MFI', icon: 'moneyBag', tone: 'purple', goto: 'microForm' },
+    { title: 'SACCO', sub: 'Transfer to SACCO', icon: 'handshake', tone: 'purple', goto: 'saccos' },
+    { title: 'Traffic Fine', sub: 'TMA penalty payment', icon: 'car', tone: 'purple', goto: 'government' },
+    { title: 'Donation', sub: 'Give to a cause', icon: 'coins', tone: 'purple', goto: 'payFor' }
+  ];
+
   /* ------------------------------------------------------------ menu search */
   var serviceCatalog = [
     { route: 'cbeTransfer', name: 'CBE Transfer', group: 'Transfers' },
@@ -373,7 +437,37 @@
       noWithdrawals: 'No withdrawal requests found yet.',
       noWithdrawalsHint: 'When you initiate a withdrawal, it will show up here.',
       contactAddresses: 'Contact addresses', socialMedias: 'Social medias',
-      scanPhone: 'Scan this phone number.', withdrawalHistory: 'Withdrawal History'
+      scanPhone: 'Scan this phone number.', withdrawalHistory: 'Withdrawal History',
+      transferTo: 'Transfer to', amountRequired: 'Enter an amount',
+      invalidAccount: 'Account number must be 13 digits', receiverName: 'Receiver full name',
+      serviceChargeFee: 'Service charge', vatPct: 'VAT (%)', drfPct: 'Disaster recovery (%)',
+      rates: 'Charges and taxes', madeReceipts: 'Made receipts', noReceipts: 'No receipts made yet',
+      save: 'Save', saved: 'Saved', close: 'Close', receipt: 'Receipt', screenshot: 'Screenshot',
+      share: 'Share', downloadReceipt: 'Download', printReceipt: 'Print',
+      authFailed: 'Authentication failed', tryAgain: 'Try Again', usePinInstead: 'Use PIN Instead',
+      biometricsRequired: 'Authentication required', confirmIdentity: 'Confirm your identity to continue.',
+      fingerprint: 'Fingerprint', face: 'Face', securedBy: 'Secured by CBE',
+      scanTitle: 'Scan your fingerprint', scanSub: 'Place your finger on the sensor to confirm.',
+      savings: 'savings', selectAccount: 'Select account', defaultAccount: 'Default account preferences',
+      sendingMoneyAccount: 'Saving Account', sendingMoney: 'Sending Money', receivingMoney: 'Receiving Money',
+      all: 'All', debited: 'Debited', credited: 'Credited',
+      fullReceipt: 'Full receipt', verifyReceiptTitle: 'Verify Receipt',
+      minStatement: 'Mini Statement', filter: 'Filter', refreshHistoryBtn: 'Refresh History',
+      newWithdrawal: 'New Withdrawal', walletTransfer: 'Wallet Transfer',
+      internetBanking: 'Internet Banking', cbeLinks: 'CBE Links', survey: 'Survey',
+      termsAndTariffs: 'Terms and Tariffs', exchangeRates: 'Exchange Rates',
+      payForTitle: 'Pay for', merchantTitle: 'Pay to Merchant',
+      enterMerchantCode: 'Enter merchant code', schoolFee: 'School Fee',
+      comingSoonTitle: 'Coming Soon', goBack: 'Go Back',
+      accountValidation: 'Account Validation',
+      transferSummary: 'Transfer summary',
+      receiptId: 'Receipt No.',
+      balance: 'Balance',
+      name: 'Name',
+      phone: 'Phone number',
+      optional: 'Optional',
+      moreServices: 'More services',
+      moreTitle: 'More'
     },
     am: {
       hello: 'ሰላም', language: 'አማርኛ', home: 'ዋና ገጽ', transactions: 'ግብይቶች', settings: 'ቅንብሮች',
@@ -434,7 +528,37 @@
       noWithdrawals: 'እስካሁን የወጪ ጥያቄ አልተገኘም።',
       noWithdrawalsHint: 'ወጪ ሲጀምሩ እዚህ ይታያል።',
       contactAddresses: 'የመገኛ አድራሻዎች', socialMedias: 'ማህበራዊ ሚዲያ',
-      scanPhone: 'ይህን ስልክ ቁጥር ይቃኙ።', withdrawalHistory: 'የወጪ ታሪክ'
+      scanPhone: 'ይህን ስልክ ቁጥር ይቃኙ።', withdrawalHistory: 'የወጪ ታሪክ',
+      transferTo: 'ወደ', amountRequired: 'መጠን ያስገቡ',
+      invalidAccount: 'የሂሳብ ቁጥር 13 አሃዝ መሆን አለበት', receiverName: 'የተቀባዩ ሙሉ ስም',
+      serviceChargeFee: 'የአገልግሎት ክፍያ', vatPct: 'ተእ (%)', drfPct: 'የአደጋ ፈንድ (%)',
+      rates: 'ክፍያዎች እና ታክሶች', madeReceipts: 'የተሰሩ ደረሰኞች', noReceipts: 'እስካሁን ደረሰኝ አልተሰራም',
+      save: 'አስቀምጥ', saved: 'ተቀምጧል', close: 'ዝጋ', receipt: 'ደረሰኝ', screenshot: 'ፎቶ',
+      share: 'አጋራ', downloadReceipt: 'አውርድ', printReceipt: 'አትም',
+      authFailed: 'ማረጋገጫ አልተሳካም', tryAgain: 'እንደገና ሞክር', usePinInstead: 'በፒን ተጠቀም',
+      biometricsRequired: 'ማረጋገጫ ያስፈልጋል', confirmIdentity: 'ለመቀጠል ማንነትዎን ያረጋግጡ።',
+      fingerprint: 'የጣት አሻራ', face: 'ፊት', securedBy: 'በCBE የተጠበቀ',
+      scanTitle: 'የጣት አሻራዎን ያንሱ', scanSub: 'ለማረጋገጥ ጣትዎን በሴንሰሩ ላይ ያድርጉ።',
+      savings: 'ቁጠባ', selectAccount: 'ሂሳብ ይምረጡ', defaultAccount: 'ነባሪ የሂሳብ ምርጫዎች',
+      sendingMoneyAccount: 'የቁጠባ ሂሳብ', sendingMoney: 'ገንዘብ መላክ', receivingMoney: 'ገንዘብ መቀበል',
+      all: 'ሁሉም', debited: 'የተቀነሰ', credited: 'የተጨመረ',
+      fullReceipt: 'ሙሉ ደረሰኝ', verifyReceiptTitle: 'ደረሰኝ አረጋግጥ',
+      minStatement: 'አጭር ሂሳብ', filter: 'አጣራ', refreshHistoryBtn: 'ታሪክ አድስ',
+      newWithdrawal: 'አዲስ ወጪ', walletTransfer: 'የዋሌት ዝውውር',
+      internetBanking: 'የኢንተርኔት ባንክ', cbeLinks: 'የCBE ሊንኮች', survey: 'የምርጫ ጥናት',
+      termsAndTariffs: 'ውሎች እና ተመኖች', exchangeRates: 'የምንዛሬ ተመን',
+      payForTitle: 'ይክፈሉ', merchantTitle: 'ለነጋዴ ይክፈሉ',
+      enterMerchantCode: 'የነጋዴ ኮድ ያስገቡ', schoolFee: 'የትምህርት ክፍያ',
+      comingSoonTitle: 'በቅርቡ', goBack: 'ተመለስ',
+      accountValidation: 'የሂሳብ ማረጋገጫ',
+      transferSummary: 'የዝውውር ማጠቃለያ',
+      receiptId: 'የደረሰኝ ቁጥር',
+      balance: 'ቀሪ ሂሳብ',
+      name: 'ስም',
+      phone: 'ስልክ ቁጥር',
+      optional: 'አማራጭ',
+      moreServices: 'ተጨማሪ አገልግሎቶች',
+      moreTitle: 'ተጨማሪ'
     }
   };
 
@@ -464,6 +588,12 @@
     cbebirrOptions: cbebirrOptions,
     cardTypes: cardTypes,
     serviceCatalog: serviceCatalog,
+    branches: branches,
+    agents: agents,
+    rates: rates,
+    homeTileIcons: homeTileIcons,
+    homeCards: homeCards,
+    homeExtras: homeExtras,
     strings: strings,
     version: '6.1.0',
     branch: 'Ras Desta Damtew St, 01, Kirkos, Addis Ababa',

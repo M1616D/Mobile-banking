@@ -5,7 +5,7 @@
    ========================================================================== */
 'use strict';
 
-var CACHE = 'cbe-mobile-v7';
+var CACHE = 'cbe-mobile-v8';
 
 var ASSETS = [
   './',
@@ -24,7 +24,6 @@ var ASSETS = [
   './assets/js/screens-home.js',
   './assets/js/screens-services.js',
   './assets/js/screens-transfer.js',
-  './assets/js/screens-payments.js',
   './assets/js/screens-settings.js',
   './assets/js/screens-receipt.js',
   './assets/js/app.js'

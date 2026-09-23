@@ -1,133 +1,133 @@
-# CBE Mobile Banking — offline web app replica
+# CBE Mobile Banking — offline web app
 
-A pixel-faithful, **100% offline** replica of the Commercial Bank of Ethiopia
-mobile banking app, rebuilt from the screenshots in `ui/` and `ui/another/`.
+A faithful **100% offline** rebuild of the Commercial Bank of Ethiopia mobile
+banking app, matched screen by screen against the screenshots in `ui/`.
 No frameworks, no build step, no CDN, no network calls — plain HTML + CSS +
 vanilla JavaScript.
 
 ## Run it
 
 ```bash
-# any static server works (needed only for the service-worker/PWA extras)
+# any static server works (only needed for the service-worker/PWA extras)
 python -m http.server 8137
 # then open http://127.0.0.1:8137/index.html
 ```
 
-Opening `index.html` straight from the file system also works — every asset path
-is relative. On a phone, use the browser's *Add to Home screen* and it launches
-full-screen with no browser chrome.
+Opening `index.html` straight from the file system works too — every asset path
+is relative. On a phone, *Add to Home screen* launches it full-screen.
 
 ## It is a web app, not a phone mock-up
 
-There is no drawn phone, no bezel, no fake status bar — no clock, no battery,
-no Wi-Fi or network bars. The layout is the real app: it fills the viewport
-(`100dvh`), respects `env(safe-area-inset-*)` for notches, and on a wide screen
-it simply centres itself at a comfortable width instead of pretending to be a
-device.
+No drawn phone, no bezel, no fake status bar — no clock, no battery, no Wi-Fi or
+network icons. The layout is the app itself: it fills the viewport (`100dvh`),
+respects `env(safe-area-inset-*)`, and on a wide screen centres itself at a
+comfortable width instead of pretending to be a device.
 
 ## Demo credentials
 
 | What | Value |
 | --- | --- |
-| Login / transaction PIN | `123456` |
-| Biometrics | tap the purple fingerprint button (simulated) |
-| Account | Bereket Mamuye Beyene, `1********3619`, ETB 5,005.71 |
+| PIN | `123456` |
+| Sign-in | fingerprint is the default — tap the purple sensor, or *Use PIN* to type it |
+| Account | Bereket Mamuye Beyene · `1******3619` · ETB 5,005.71 |
 
-## What was replicated
+The balance starts masked (`******`); the eye on the balance card reveals the
+amount **and** the full account number, and hides both again.
 
-**Auth** – splash (dark, white logo tile) → login (bell, language pill, 4-cube
-icon, gold CBE logo, *Welcome back*, PIN field with the lock, the purple
-fingerprint sensor, `USE BIOMETRICS`, gold **Login**) with the
-*Authenticating…* card whose arc sweeps around the fingerprint line-art, then
-the *Authenticated!* tick. The CBE NOOR variant, the *Use PIN* link and the
-6-dot PIN keypad screen (including the red *This field is required* state) are
-all there too.
+## The flow, as in the screenshots
 
-**Home** – purple hero with greeting, language switch, refresh and search; the
-dark balance card (balance + eye toggle that swaps the amount for asterisks
-**and** the account number between `1********3619` and the full number, plus
-copy and the timestamp); amber motif; quick actions (Mini Statement, Cash Out,
-Bill Share, Cards + “more”); the service grid (CBE Transfer, Receive, Airtime,
-Other Transfers, CBEBirr, Bills & Utilities, Banking, Government, Pay to
-Merchant, Travel, Shopping, Entertainment, Pay for, Tax Payment, ESL, CBE Fast
-Loan); floating bar (Branches, **Scan QR**, Agents) and the cream
-Home/Transactions/Settings tab bar. **The 4-cube icon opens My Information.**
+**Splash** – white screen, the CBE gold logo inside a centred white plate, and
+three pulsing dots.
 
-**My Information** – holder name with *Last Sign In*, Contact Us, the CBE NOOR
-switch, the My Accounts / Phone Number segmented control, the account QR with
-*Scan this account number.* and the masked number, then the gold **Log out**
-button. **Contact Us** carries the logo, `Version: 6.1.0`, the three contact
-addresses and the five social rows.
+**Sign-in** – the fingerprint is the default: bell · language · grid header,
+gold CBE logo, *የኢትዮጵያ ንግድ ባንክ*, **COMMERCIAL BANK OF ETHIOPIA**, *Welcome
+back*, the purple sensor disc, `USE BIOMETRICS` and the *Use PIN* link. The
+sensor opens the native-looking *Fingerprint / Face* prompt, then the
+*Authenticating…* card ticking around the fingerprint line-art, then a **green**
+*Authenticated!* tick before the home page appears. *Use PIN* shows the PIN
+field with the gold lock, the gold **Login →** button and the numeric keypad
+(empty submit gets the red border and *This field is required*; the wrong PIN is
+rejected and the session stays locked).
 
-**Transactions** – All / Debited / Credited tabs with the search icon,
-colour-coded rows (red arrow out, green arrow in) with the amount, the relative
-date and the `ACCOUNT TO ACCOUNT` / `TRANSFER` tag, then the detail screen.
+**Home** – purple hero (Hello / name, language pill, bell, search), the dark
+balance card (gold bank name and tagline, balance with the eye, `Saving
+Account`, timestamp), the amber motif, the four round tiles (Mini Statement,
+Cash Out, Bill Share, Cards with the › more button), the two-per-row cards (CBE
+Transfer · Send Money, Receive · Get Paid, Airtime, Other Transfers, CBEBirr,
+Bills & Utilities), the Branches / **Scan QR** / Agents bar, ten more working
+tools (CBE Fast Loan, Shopping, Tax Payment, Pay Merchant, Forex, Loan Products,
+Micro Finance, SACCO, Traffic Fine, Donation) and the bottom bar whose selected
+item is a **rounded cream pill**. The 4-cube header icon opens **My
+Information**.
 
-**Other Services** – the two-column grid the 4-cube icon opens before sign-in:
-Exchange Rates, Internet Banking, USSD, Verify Receipt, Feedback, CBE Locator,
-Call Center, Privacy Policy, Terms and Tariffs, Survey and CBE Links.
+**My Information** – name with *Last Sign In*, Contact Us, the CBE NOOR switch,
+the My Accounts / Phone Number segmented control, the account QR with *Scan this
+account number.* and the gold **Log out**.
 
-**Transfers** – CBE Transfer (dark *From Account* card with the hidden-number
-dots, account number, amount, *Add remark*, **Continue**, Recent Transfers /
-Beneficiaries) → Transfer review → **Please Confirm** (From · To · Total Amount,
-Cancel · Continue) → **Verify Identity** → the PIN pad → **Thank you /
-Transaction Completed Successfully!** with the summary card, QR,
-Receipt · Screenshot · Share and Close → the full
-`breciept.cbe.com.et` customer receipt with the stamp, amount in words, QR and
-**Download PDF**.
+**Transactions** – All / Debited / Credited with the search icon and the
+colour-coded rows from the screenshots (Yfuri Hanna, Hizkel Wana, Wisenbet
+Wondimu, Eyob Sintayehu, Mamuye Beyene), each opening its detail page.
 
-**Other Transfers** – separate cards for Wallet, Transfer to Other Banks (the
-searchable *Bank Name* sheet: logo + name rows with the search field, exactly
-like the photos), Transfer to Micro Finances and SACCO. **Airtime** (Ethio
-telecom / Safaricom, self or others), **Bills & Utilities** (all eight
-billers), **CBEBirr**, **Receive Money** (live QR, Share / Copy link / Download
-/ Add amount), Mini Statement, Cash Out, Bill Share, Cards, Banking, Government
-Services, Branches, Agents, Loan, Forex, Withdrawal History, Settings and its
-sub-pages.
+**CBE Transfer** – starts blank. The dark *From Account* card, then **Account
+Number** and **Amount\*** with a clear gap between them (they never touch), *+
+Add remark* with *\*Default: MB transfer*, **Continue**, then Recent Transfers /
+Beneficiaries. An account shorter than **13 digits is refused** with a red field
+and *Account number must be 13 digits*. Only after **Continue** does the
+`Transfer to <name>` card appear — with the default receiver **Abel Yakob**
+until the hidden setup or the history overrides it. Picking a row from the
+history fills the name and account and asks for the amount only. Then **Please
+Confirm** (From · To · Total Amount · Cancel/Continue) → the sensor prompt →
+**Verify Identity** → the green *Biometrics Authenticated!* → the PIN pad →
+**Thank you / Transaction Completed Successfully!**
 
-**Real brand artwork** – the uploaded logos are shipped in
-`assets/img/brands/` and used everywhere a brand appears (abay, addis, ahadu,
-amhara, awash, abyssinia, berhan, bunna, nib, tsehay, zemen, telebirr, ebirr,
-mpesa, yaya, binget, sahaypay, ethiotelecom), plus the CBE logo and the
-fingerprint line-art (white for the sensor disc, purple for the light sheets).
-Banks without artwork fall back to a colour-matched monogram tile, so nothing is
-ever missing or broken.
+**Receipts** – the success card is the exact reference layout (purple header
+with the tick and *Thank you · Success*, the overlapping badge, the summary
+block, the QR, the logo, Receipt · Screenshot · Share and Close). *Receipt*
+opens the full `Customer Receipt` page — company and customer columns, the
+payment table, the round bank stamp **centred on the table**, the amount in
+words, the QR and **Download PDF**, which writes a standalone receipt file
+offline (print renders the same paper into a hidden iframe so *Save as PDF* is
+never popup-blocked). Fees are always calculated: service charge, VAT 15 % of
+the charge, Disaster Recovery 5 % of the charge.
 
-**Language** – English ⇄ አማርኛ switches the whole shell and uses the Ethiopic
-font stack; verified with no layout overflow in Amharic.
+**Services** – Other Services (before *or* after sign-in: the two-column grid;
+before sign-in it shows **no tab bar** and asks for the fingerprint/PIN before
+opening anything), Exchange Rates, Internet Banking, USSD, Verify Receipt,
+Feedback, CBE Locator, Call Center, Privacy Policy, Terms and Tariffs, Survey,
+CBE Links, Airtime (Ethio telecom / Safaricom, self or others), Bills &
+Utilities, CBEBirr, Receive Money (live QR, Share / Copy link / Download / Add
+amount), Mini Statement, Cash Out, Bill Share, Cards (freeze, limits), Branches,
+Agents, Government Services, Loans, Pay for / Pay to Merchant, Shopping,
+Withdrawal History, Settings and every settings sub-page.
 
-## Receipts
+**Settings** – Language, Account Preferences, Notification Preferences, Service
+Preferences · Biometric Login, Change PIN, Change Passphrase · Log out, then
+`Version: 6.1.0` and Privacy Policy · Terms and Tariffs.
 
-* The on-screen receipt is the exact reference layout: purple gradient header
-  with the shield and the *Thank you / Success*, the overlapping tick badge,
-  *Transaction Completed Successfully!*, the serif narrative paragraph with the
-  payer, receiver, date, transaction ID, reason and the full charge breakdown,
-  the QR, the CBE logo and tagline, then Receipt · Screenshot · Share · Close.
-* **Screenshot** writes a plain, self-contained copy of that receipt — inline
-  CSS, inline QR, the logo inlined as a data URI, no buttons — named
-  `CBE-Receipt-<ref>.html`, which is exactly the “downloaded receipt” layout.
-* **Receipt** opens the full customer receipt, whose **Download PDF** writes the
-  same paper as a standalone file and whose print button renders it into a
-  hidden iframe so *Save as PDF* can never be popup-blocked.
-* Every charge printed on them is computed: service charge, VAT 15 % of the
-  charge and Disaster Recovery 5 % of the charge.
+## Real brand artwork
+
+Every uploaded logo ships in `assets/img/brands/` and is used wherever the brand
+appears — abay, addis, ahadu, amhara, awash, abyssinia, berhan, bunna, nib,
+tsehay, zemen, telebirr, ebirr, mpesa, yaya, binget, sahaypay, ethiotelecom —
+plus the CBE logo, the fingerprint line-art (white on the sensor disc, purple on
+the light sheets) and the bank stamp. Brands without artwork fall back to a
+colour-matched monogram tile, so nothing is ever broken or missing.
 
 ## Engineering notes
 
-* **Smoothness** – only `transform` / `opacity` / `background-color` are ever
-  animated, there is no `backdrop-filter` anywhere, every scroll container has
-  `contain`, rows and tiles use `translateZ(0)` for GPU compositing,
-  `touch-action: manipulation` removes the 300 ms tap delay, and `100dvh`
-  avoids mobile viewport jumps while scrolling. Screens are painted as a single
-  `innerHTML` swap — no framework diffing between frames.
-* **Responsive** – no horizontal overflow at 320 × 568, 390 × 844 and
-  1024 × 820; the two-column grids hold all the way down to 320 px.
-* **State** – balance, accounts, transactions, recipients, the receiver, the
-  fee rates, PIN and preferences persist in `localStorage`; the session always
+* **Smoothness** – only `transform`, `opacity` and `background-color` animate,
+  there is no `backdrop-filter`, every scroll container uses `contain`, and a
+  screen change is a single `innerHTML` swap. Measured while scrolling the home
+  page: median frame 16.7 ms, p95 17.0 ms, worst 17.2 ms (a locked 60 fps).
+* **Responsive** – no horizontal overflow from 320 px up; the two-column grids
+  hold all the way down.
+* **State** – balance, accounts, transactions, recipients, the receiver, the fee
+  rates, the PIN and preferences persist in `localStorage`; the session always
   starts locked.
 * **Offline** – `sw.js` is network-first with a cache fallback, so a fresh copy
   is used when the file is newer and the cached copy keeps the app working with
-  no connection at all. No external request is ever made.
+  no connection. No external request is ever made.
+* **Language** – English ⇄ አማርኛ switches the shell and the home tiles.
 
 ## Layout
 
@@ -137,10 +137,16 @@ manifest.json  sw.js        installable PWA + offline cache
 assets/css/app.css          one stylesheet — all components, all breakpoints
 assets/js/qr.js             offline QR generator (no library, no CDN)
 assets/js/data.js           banks, wallets, billers, SACCOs, strings (EN/AM)
-assets/js/ui.js             icons, real logos, formatters, sheets, toasts
-assets/js/core.js           state, storage, router, fee maths, pickers,
-                            payment pipeline, receipt model
-assets/js/screens-*.js      auth · home · services · transfer · payments ·
-                            settings · receipt · app (event delegation, boot)
-assets/img/                 cbe-logo, fingerprint, fingerprint-white, brands/
+assets/js/ui.js             icons, real logos, formatters, sheets, fragments
+assets/js/core.js           state, storage, router, sign-in gate, fee maths,
+                            pickers, payment pipeline, receipt model
+assets/js/screens-auth.js   splash · sign-in · PIN sign-in · other services
+assets/js/screens-home.js   home · transactions · detail · notifications · search
+assets/js/screens-services.js  every service and payment page
+assets/js/screens-transfer.js  CBE Transfer · other transfers · wallet · scanner
+assets/js/screens-settings.js  settings · My Information · Contact Us · setup
+assets/js/screens-receipt.js   success receipt · full receipt · download/print
+assets/js/app.js            event delegation, action table, boot
+assets/img/                 cbe-logo, fingerprint, fingerprint-white, bank-stamp, brands/
+ui/                         the reference screenshots the UI was matched against
 ```

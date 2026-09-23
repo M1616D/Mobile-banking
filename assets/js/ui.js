@@ -99,6 +99,7 @@
     star: '<path d="M12 4l2.5 5.3 5.5.7-4 3.8 1 5.6L12 16.7 7 19.4l1-5.6-4-3.8 5.5-.7Z"/>',
     edit: '<path d="M15.6 4.6 19.4 8.4 8.8 19H5v-3.8Z"/><path d="M13.6 6.6l3.8 3.8"/>',
     clock: '<circle cx="12" cy="12" r="8.6"/><path d="M12 7.4V12l3 1.8"/>',
+    calculator: '<rect x="4.6" y="3.4" width="14.8" height="17.2" rx="2.6"/><rect x="7.6" y="6.4" width="8.8" height="3.2" rx="1"/><path d="M8.2 13h.01M12 13h.01M15.8 13h.01M8.2 16.6h.01M12 16.6h.01M15.8 16.6h.01"/>',
     bankNote: '<rect x="2.8" y="6.4" width="18.4" height="11.2" rx="2.4"/><path d="M2.8 10.8h18.4"/><path d="M6.4 14.6h4.2"/>',
     transferOut: '<path d="M4.4 8.6h13l-3.2-3.2"/><path d="M19.6 15.4h-13l3.2 3.2"/>',
     /* the sparkle the receipt uses for "Screenshot" */
@@ -243,7 +244,7 @@
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   function h12(d) { var h = d.getHours(); return (h % 12 || 12) + ':' + pad(d.getMinutes()) + ' ' + (h < 12 ? 'AM' : 'PM'); }
   function h12p(d) { var h = d.getHours(); return pad(h % 12 || 12) + ':' + pad(d.getMinutes()) + ' ' + (h < 12 ? 'AM' : 'PM'); }
-  function shortDate(v) { var d = toDate(v); return d.getDate() + ' ' + MON[d.getMonth()] + '-' + String(d.getFullYear()).slice(2) + ' ' + h12(d); }
+  function shortDate(v) { var d = toDate(v); return d.getDate() + ' ' + MON[d.getMonth()] + ' ' + String(d.getFullYear()).slice(2) + ' ' + h12(d); }
   function longDate(v) { var d = toDate(v); return MON[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() + ' ' + h12p(d); }
   function cardStamp(v) { var d = toDate(v); return d.getDate() + ' ' + MON[d.getMonth()] + ' ' + d.getFullYear() + ' • ' + h12p(d); }
   function dayStamp(v) { var d = toDate(v); return MON[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() + ' • ' + h12p(d); }
@@ -283,15 +284,15 @@
     var whole = Math.floor(Math.abs(amount));
     var cents = Math.round((Math.abs(amount) - whole) * 100);
     var s = words(whole) + ' ETB';
-    if (cents > 0) s += ' and ' + words(cents) + (cents === 1 ? ' Cent' : ' Cents');
+    if (cents > 0) s += ' and ' + words(cents) + (cents === 1 ? ' cent' : ' cents');
     return s;
   }
-  /* mask 1000123453619 -> 1********3619 */
+  /* mask 1000407533619 -> 1******3619, exactly like the account rows in the
+     reference screenshots */
   function maskAccount(v) {
     var digits = String(v || '').replace(/\D/g, '');
     if (digits.length < 6) return String(v || '');
-    /* keep every digit accounted for: 1********3619 */
-    return digits.slice(0, 1) + new Array(Math.max(4, digits.length - 4)).join('*') + digits.slice(-4);
+    return digits.slice(0, 1) + '******' + digits.slice(-4);
   }
   function last4(v) { return String(v || '').replace(/\D/g, '').slice(-4); }
 
@@ -445,22 +446,87 @@
     var noor = !!st.noor;
     var account = shown ? String(st.profile.accountNumber) : maskAccount(st.profile.accountNumber);
     return '<div class="balance-card">' +
-      '<div class="bc-brand">' + cbeLogo(30) +
-        '<div><div class="n">' + esc(noor ? 'CBE NOOR' : CBE.t('bankNameLong')) + '</div>' +
+      '<div class="bc-brand">' +
+        '<span class="bc-logo">' + cbeLogo(28) + '</span>' +
+        '<div><div class="n">' + esc(noor ? CBE.t('cbeNoor') : CBE.t('bankNameLong')) + '</div>' +
         '<div class="t">' + esc(noor ? 'ስሉ ኑር' : CBE.t('tagline')) + '</div></div>' +
       '</div>' +
       '<div class="bc-balance">' +
-        '<button class="eye" data-action="toggleBalance" aria-label="Show balance" ' +
-          'style="order:3;margin-left:2px">' + icon(shown ? 'eye' : 'eyeOff', { size: 20 }) + '</button>' +
         '<span class="amt' + (shown ? '' : ' masked') + '">' + (shown ? money(st.balance) : '******') + '</span>' +
         '<span class="cur">ETB</span>' +
+        '<button class="eye" data-action="toggleBalance" aria-label="Show balance">' + icon(shown ? 'eyeOff' : 'eye', { size: 20 }) + '</button>' +
       '</div>' +
-      '<div class="bc-account" data-action="copyAccount">' +
+      '<button class="bc-account" data-action="copyAccount">' +
         '<span>' + esc(CBE.t('savingAccount')) + ' ' + esc(account) + '</span>' +
         '<span class="copy">' + icon('copy', { size: 16 }) + '</span>' +
-      '</div>' +
+      '</button>' +
       '<div class="bc-time">' + esc(cardStamp(opts.at || Date.now())) + '</div>' +
     '</div>';
+  }
+
+  /* ---------------------------------------------------------- home pieces */
+  function homeHead(opts) {
+    opts = opts || {};
+    var st = CBE.state;
+    var name = opts.name || st.user.short || st.profile.holderName;
+    return '<header class="home-head">' +
+      '<div class="hh-top">' +
+        '<span class="hh-avatar">' + esc(String(name || 'B')[0].toUpperCase()) + '</span>' +
+        '<span class="hh-name"><small>' + esc(CBE.t('hello')) + '</small><b>' + esc(name) + '</b></span>' +
+        '<span class="hh-actions">' +
+          '<button class="lang-pill" data-action="language">' + esc(CBE.t('language')) + icon('chevronDown', { size: 15 }) + '</button>' +
+          '<button class="icon-btn" data-action="notifications" aria-label="Notifications">' + icon('bell', { size: 21 }) + '</button>' +
+          '<button class="icon-btn" data-action="searchMenu" aria-label="Search">' + icon('search', { size: 21 }) + '</button>' +
+        '</span>' +
+      '</div>' +
+    '</header>';
+  }
+
+  /* the four round icon buttons with the label under them */
+  function iconTile(o) {
+    return '<button class="tile" data-action="' + esc(o.action || 'goto') + '"' +
+      (o.goto ? ' data-goto="' + esc(o.goto) + '"' : '') +
+      (o.value ? ' data-value="' + esc(o.value) + '"' : '') + '>' +
+      '<span class="tile-ico">' + icon(o.icon || 'grid', { size: 22, weight: 1.8 }) + '</span>' +
+      '<span class="tile-lbl">' + esc(o.title) + '</span></button>';
+  }
+
+  /* the wider two-per-row cards */
+  function cardTile(o) {
+    var cls = 'card-tile' + (o.center ? ' center' : '');
+    var inner = o.center
+      ? (o.logo ? logoImg(o.logo, 40) : '<span class="ct-ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONS[o.icon] || ICONS.grid) + '</svg></span>') +
+        '<b>' + esc(o.title) + '</b>'
+      : '<span class="ct-ico ' + (o.tone || 'pink') + '">' + icon(o.icon || 'transfer', { size: 19, weight: 2 }) + '</span>' +
+        '<span class="ct-txt"><b>' + esc(o.title) + '</b>' + (o.sub ? '<small>' + esc(o.sub) + '</small>' : '') + '</span>';
+    return '<button class="' + cls + '" data-action="' + esc(o.action || 'goto') + '"' +
+      (o.goto ? ' data-goto="' + esc(o.goto) + '"' : '') +
+      (o.value ? ' data-value="' + esc(o.value) + '"' : '') + '>' + inner + '</button>';
+  }
+
+  function walletTile(o) {
+    return '<button class="wallet-tile" data-action="' + esc(o.action || 'goto') + '"' +
+      (o.goto ? ' data-goto="' + esc(o.goto) + '"' : '') +
+      (o.value ? ' data-value="' + esc(o.value) + '"' : '') + '>' +
+      logoFor(o, 44) + '<span class="lbl">' + esc(o.title || o.name) + '</span></button>';
+  }
+
+  function osItem(o) {
+    return '<button class="os-item" data-action="' + esc(o.action || 'goto') + '"' +
+      (o.goto ? ' data-goto="' + esc(o.goto) + '"' : '') +
+      (o.value ? ' data-value="' + esc(o.value) + '"' : '') + '>' +
+      '<span class="oi">' + (o.logo ? logoImg(o.logo, 26) : (o.cbe ? cbeLogo(24) : icon(o.icon || 'grid', { size: 23, weight: 1.8 }))) + '</span>' +
+      '<span class="lbl">' + esc(o.title) + '</span></button>';
+  }
+
+  function switchRow(o) {
+    return '<div class="switch-row"><span class="txt"><b>' + esc(o.title) + '</b>' +
+      (o.sub ? '<small>' + esc(o.sub) + '</small>' : '') + '</span>' +
+      '<button class="switch' + (o.on ? ' on' : '') + '" data-toggle="' + esc(o.key) + '" aria-label="' + esc(o.title) + '"></button></div>';
+  }
+
+  function kvRow(k, v) {
+    return '<div class="kv"><span class="k">' + esc(k) + '</span><span class="v">' + esc(v) + '</span></div>';
   }
 
   /* flat bank / wallet row used by the Bank Name sheet exactly like the photo */
@@ -579,6 +645,8 @@
     appbar: appbar, row: row, listRowSimple: listRowSimple, field: field,
     balanceCard: balanceCard, accountCard: accountCard, txRow: txRow, bankRow: bankRow,
     emptyState: emptyState, tabbar: tabbar, comingSoon: comingSoon,
-    govItem: govItem, merchantTile: merchantTile, emptyVisual: emptyVisual
+    govItem: govItem, merchantTile: merchantTile, emptyVisual: emptyVisual,
+    homeHead: homeHead, iconTile: iconTile, cardTile: cardTile, walletTile: walletTile,
+    osItem: osItem, switchRow: switchRow, kvRow: kvRow
   };
 })(typeof window !== 'undefined' ? window : this);

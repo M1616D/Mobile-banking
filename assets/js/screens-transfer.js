@@ -1,366 +1,270 @@
 /* ==========================================================================
-   screens-transfer.js — CBE Transfer, Transfer (recipient), Other Transfers,
-   Wallet, Account Validation and Receive Money
+   screens-transfer.js — CBE Transfer (blank until it is filled in), the
+   other-transfer routes, the bank picker sheet, wallets, micro finance,
+   SACCO and the QR scanner.
    ========================================================================== */
 (function (global) {
   'use strict';
   var CBE = global.CBE;
   var U = CBE.ui;
+  var t = function (k) { return CBE.t(k); };
 
-  var transferTab = 'recent';
-  var draftForm = null;
-  var receiveAmount = 0;
-
-  /* the transfer form always starts empty — the account number, the amount and
-     the remark are typed in by hand. The receiver name of the coming transfer
-     comes from the private setup and is printed on the receipt. */
-  function form() {
-    if (!draftForm) draftForm = { account: '', amount: '', remark: '', showRemark: false };
-    return draftForm;
-  }
-  function resetForm() { draftForm = null; }
-
-  function accountField() {
-    var f = form();
-    return U.field({
-      icon: 'bankNote', inputId: 'f-account', name: 'account', placeholder: CBE.t('accountNumber'),
-      value: f.account, inputmode: 'numeric', maxlength: 18,
-      tailAction: 'pickPreset', tail: CBE.icon('userPlus', { size: 21 })
-    });
+  function fromAccountCard() {
+    var acc = CBE.state.accounts[CBE.state.accountIndex] || CBE.state.accounts[0];
+    return '<button class="from-acct" data-action="pickAccount">' +
+      '<small>' + U.esc(t('fromAccount')) + '</small>' +
+      '<div class="acc">' + U.esc(t('savings')) + ' ' + U.esc(acc.account) + '</div>' +
+      '<div class="acts"><span class="dots">••••••</span>' +
+        '<button data-action="refresh" aria-label="Refresh">' + CBE.icon('sync', { size: 17 }) + '</button></div>' +
+    '</button>';
   }
 
-  function amountField() {
-    var f = form();
-    return U.field({
-      icon: 'cash', inputId: 'f-amount', name: 'amount', placeholder: CBE.t('amount') + '*',
-      value: f.amount ? U.money(f.amount) : '', inputmode: 'decimal',
-      tailAction: 'openAmountSheet', tail: CBE.icon('card', { size: 20 })
-    });
+  function remarkRow(state) {
+    var shown = state.showRemark;
+    return '<button class="remark-row" data-action="toggleRemark">' +
+      CBE.icon('plusCircle', { size: 20 }) +
+      '<span>' + U.esc(t('addRemark')) + '</span>' +
+      '<span class="hint">' + U.esc(t('defaultRemark')) + '</span>' +
+    '</button>' +
+    (shown ? '<div class="field remark-field"><span class="fico muted">' + CBE.icon('chat', { size: 20 }) + '</span>' +
+      '<input id="tf-remark" placeholder="' + U.esc(t('addRemark')) + '"></div>' : '');
   }
 
-  /* the receiver of the coming transfer: whatever the private setup keeps, or
-     the recipient that was picked on the way in. Never a hard-coded name. */
-  function receiverName(r) {
-    if (r && r.name) return r.name;
-    var pre = CBE.state.preset || {};
-    return pre.name || CBE.t('accountNumber');
-  }
-  function receiverAccount(r) {
-    if (r && r.account) return r.account;
-    var pre = CBE.state.preset || {};
-    return pre.account ? U.maskAccount(pre.account) : '';
+  function prefRow(item) {
+    return '<div class="pref-row">' +
+      '<span class="avatar" style="width:42px;height:42px">' + U.esc(U.initials(item.name)) + '</span>' +
+      '<span class="txt"><b>' + U.esc(item.name) + '</b><small>' + U.esc(item.account) + '</small></span>' +
+      '<button class="mini-btn" data-action="copyValue" data-value="' + U.esc(item.account) + '" aria-label="Copy">' + CBE.icon('copy', { size: 18 }) + '</button>' +
+      '<button class="chev" data-action="useRecipient" data-value="' + U.esc(item.id) + '" aria-label="Use">' + CBE.icon('chevronRight', { size: 20 }) + '</button>' +
+    '</div>';
   }
 
-  function remarkBlock() {
-    var f = form();
-    return '<button class="add-remark" data-action="toggleRemark">' +
-      '<span class="plus">' + CBE.icon('plus', { size: 14, weight: 2.4 }) + '</span>' +
-      '<span>' + U.esc(CBE.t('addRemark')) + '</span>' +
-      '<span class="hint">' + U.esc(CBE.t('defaultRemark')) + '</span></button>' +
-      (f.showRemark ? '<div class="field" style="margin-top:12px">' + CBE.icon('doc', { size: 20, cls: 'fico' }) +
-        '<input id="f-remark" placeholder="Remark" value="' + U.esc(f.remark) + '"></div>' : '');
-  }
-
-  /* -------------------------------------------------------- CBE Transfer */
+  /* --------------------------------------------------------- CBE Transfer */
   CBE.define('cbeTransfer', {
+    showRemark: false,
     render: function () {
-      var recents = CBE.state.recents;
-      var bens = CBE.state.beneficiaries;
+      var st = CBE.transferActions.state();
+      var recip = st.recip;
+      var tab = st.tab || 'recent';
+      var list = tab === 'recent' ? CBE.state.recents : CBE.state.beneficiaries;
       return '<section class="screen">' +
-        U.appbar('CBE Transfer') +
-        '<div class="sheet-light"><div class="screen-body">' +
-          U.accountCard(CBE.state.account) +
-          '<div style="margin-top:14px">' + accountField() + '</div>' +
-          amountField() +
-          remarkBlock() +
-          '<div style="margin-top:18px"></div>' +
-          '<button class="btn btn-primary" data-action="transferContinue">' + U.esc(CBE.t('continue')) + '</button>' +
-          '<div class="tabs centered" style="margin-top:26px">' +
-            '<button class="tab' + (transferTab === 'recent' ? ' active' : '') + '" data-transfer-tab="recent">' + U.esc(CBE.t('recentTransfers')) + '</button>' +
-            '<button class="tab' + (transferTab === 'ben' ? ' active' : '') + '" data-transfer-tab="ben">' + U.esc(CBE.t('beneficiaries')) + '</button>' +
-          '</div>' +
-          '<div style="padding-top:14px;padding-bottom:20px">' +
-            (transferTab === 'recent'
-              ? (recents.length ? recents.map(function (r) {
-                  return '<div class="recipient">' +
-                    '<span class="av">' + U.esc(U.initials(r.name)) + '</span>' +
-                    '<span class="txt"><b>' + U.esc(r.name) + '</b><small>' + U.esc(r.account) + '</small></span>' +
-                    '<span class="tools">' +
-                      '<button class="del" data-action="deleteRecent" data-value="' + U.esc(r.id) + '" aria-label="Remove">' + CBE.icon('trash', { size: 19 }) + '</button>' +
-                      '<button data-action="useRecipient" data-value="' + U.esc(r.id) + '" aria-label="Transfer">' + CBE.icon('chevronRight', { size: 20 }) + '</button>' +
-                    '</span></div>';
-                }).join('') : U.emptyState(CBE.t('noResults')))
-              : (bens.length ? bens.map(function (r) {
-                  return '<div class="recipient">' +
-                    '<span class="av">' + U.esc(U.initials(r.name)) + '</span>' +
-                    '<span class="txt"><b>' + U.esc(r.name) + '</b><small>' + U.esc(r.account) + '</small></span>' +
-                    '<span class="tools"><button data-action="useRecipient" data-value="' + U.esc(r.id) + '">' + CBE.icon('chevronRight', { size: 20 }) + '</button></span>' +
-                    '</div>';
-                }).join('') : U.emptyState(CBE.t('noBeneficiaries')))) +
-          '</div>' +
-        '</div></div>' +
-      '</section>';
-    }
-  });
-
-  /* ------------------------------------------------------------- transfer */
-  CBE.define('transfer', {
-    render: function (p) {
-      var r = p.recipient || (CBE.state.transferDraft && CBE.state.transferDraft.recipient) || null;
-      var f = form();
-      var amount = p.amount != null ? p.amount : (f.amount ? Number(f.amount) : null);
-      var remark = p.remark != null ? p.remark : f.remark;
-      return '<section class="screen">' +
-        U.appbar('Transfer') +
-        '<div class="sheet-light"><div class="screen-body">' +
-          '<div class="field" style="flex-direction:column;align-items:stretch;gap:10px;padding:14px">' +
-            '<span style="font-size:12.5px;color:var(--muted)">Transfer to</span>' +
-            '<div style="display:flex;align-items:center;gap:12px">' +
-              '<span class="ico round" style="width:42px;height:42px;border-radius:50%;background:var(--purple-050);display:grid;place-items:center;color:var(--purple-500)">' +
-                CBE.icon(r && r.scanned ? 'scanQr' : 'bankNote', { size: 20 }) + '</span>' +
-              '<span style="flex:1;min-width:0">' +
-                '<b style="display:block;font-size:15px">' + U.esc(receiverName(r)) + '</b>' +
-                '<small style="display:block;font-size:12px;color:var(--muted);font-family:var(--font-mono);margin-top:3px">' +
-                  U.esc(receiverAccount(r)) + '</small></span>' +
-              '<span style="color:#b9c0bd">' + CBE.icon('chevronRight', { size: 20 }) + '</span>' +
+        '<div class="screen-body no-nav">' +
+          U.appbar(t('cbeTransfer'), { right: '' }) +
+          (recip
+            ? '<div class="recip-card"><span class="rc-ico">' + CBE.icon('bank', { size: 21 }) + '</span>' +
+              '<span class="rc-txt"><b>' + U.esc(t('transferTo')) + ' ' + U.esc(recip.name) + '</b>' +
+              '<small>' + U.esc(recip.account) + '</small></span></div>'
+            : '') +
+          fromAccountCard() +
+          (recip ? '' :
+            '<div class="field" id="tf-account-field">' +
+              '<span class="fico">' + CBE.icon('bank', { size: 20 }) + '</span>' +
+              '<input id="tf-account" inputmode="numeric" maxlength="13" placeholder="' + U.esc(t('accountNumber')) + '" autocomplete="off">' +
+              '<span class="tail" data-action="pickRecipient" style="cursor:pointer">' + CBE.icon('userPlus', { size: 20 }) + '</span>' +
             '</div>' +
+            '<div class="field-error" id="tf-account-error" style="display:none"></div>') +
+          '<div class="field" id="tf-amount-field" style="margin-top:' + (recip ? '0' : '18px') + '">' +
+            '<span class="fico">' + CBE.icon('wallet', { size: 20 }) + '</span>' +
+            '<input id="tf-amount" inputmode="decimal" placeholder="' + U.esc(t('amount')) + '*" autocomplete="off">' +
+            '<span class="tail" data-action="openAmountSheet" style="cursor:pointer">' + CBE.icon('calculator', { size: 20 }) + '</span>' +
           '</div>' +
-          '<div style="margin-top:14px">' + U.accountCard(CBE.state.account) + '</div>' +
-          '<div style="margin-top:14px">' + U.field({
-            icon: 'cash', inputId: 'f-amount', name: 'amount', placeholder: CBE.t('amount') + '*',
-            value: amount ? U.money(amount) : '', inputmode: 'decimal',
-            tailAction: 'openAmountSheet', tail: CBE.icon('card', { size: 20 })
-          }) + '</div>' +
-          (remark ? '<div class="field" style="margin-top:12px">' + CBE.icon('doc', { size: 20, cls: 'fico' }) +
-            '<input id="f-remark" placeholder="Remark" value="' + U.esc(remark) + '"></div>' :
-            '<button class="add-remark" data-action="toggleRemark2"><span class="plus">' + CBE.icon('plus', { size: 14, weight: 2.4 }) + '</span>' +
-            '<span>' + U.esc(CBE.t('addRemark')) + '</span></button>') +
-          '<button class="btn btn-primary" style="margin-top:22px" data-action="doTransfer">' + U.esc(CBE.t('transfer')) + '</button>' +
-        '</div></div>' +
+          '<div class="field-error" id="tf-amount-error" style="display:none"></div>' +
+          remarkRow(this) +
+          '<button class="btn btn-primary" style="margin-top:24px" data-action="' + (recip ? 'doTransfer' : 'transferContinue') + '">' +
+            U.esc(recip ? t('transfer') : t('continue')) + '</button>' +
+          (recip ? '' :
+            '<div class="seg tabs" style="margin-top:26px">' +
+              '<button class="seg-item' + (tab === 'recent' ? ' active' : '') + '" data-transfer-tab="recent"><span>' + U.esc(t('recentTransfers')) + '</span></button>' +
+              '<button class="seg-item' + (tab === 'benef' ? ' active' : '') + '" data-transfer-tab="benef"><span>' + U.esc(t('beneficiaries')) + '</span></button>' +
+            '</div>' +
+            '<div style="padding:8px 0 10px">' +
+              (list && list.length ? list.map(prefRow).join('') : U.emptyState(t('noBeneficiaries'))) +
+            '</div>') +
+        '</div>' +
       '</section>';
+    },
+    after: function () {
+      var input = document.getElementById('tf-account');
+      if (input) {
+        input.addEventListener('input', function () {
+          input.value = input.value.replace(/\D/g, '').slice(0, 13);
+          var f = document.getElementById('tf-account-field');
+          var e = document.getElementById('tf-account-error');
+          if (f) f.classList.remove('invalid');
+          if (e) e.style.display = 'none';
+        });
+      }
     }
   });
 
-  /* ----------------------------------------------------- Other Transfers */
+  /* ---------------------------------------------------- other transfers */
   CBE.define('otherTransfers', {
     render: function () {
       var items = CBE.data.otherTransfers;
       return '<section class="screen">' +
-        U.appbar(CBE.t('otherTransfers')) +
-        '<div class="sheet-light"><div class="screen-body">' +
-          '<div class="ot-list">' +
-            items.map(function (it) {
-              var lead = it.logo || it.brand
-                ? '<span class="ic img">' + CBE.logoFor(it, 34) + '</span>'
-                : '<span class="ic" style="color:' + (it.tone || '#7b2cbf') + '">' +
-                  CBE.icon(it.icon || 'coins', { size: 22 }) + '</span>';
-              return '<button class="ot-row" data-goto="' + U.esc(it.route || it.id) + '" data-action="goto">' +
-                lead +
-                '<span class="txt"><b>' + U.esc(it.name) + '</b><small>' + U.esc(it.sub) + '</small></span>' +
-                '<span class="chev">' + CBE.icon('chevronRight', { size: 20 }) + '</span></button>';
-            }).join('') +
-          '</div>' +
-        '</div></div>' +
-        U.tabbar('home') +
+        '<div class="screen-body no-nav">' +
+          U.appbar(t('otherTransfers')) +
+          '<div style="padding:18px 0 0">' + items.map(function (it) {
+            return '<button class="row" style="border-radius:14px;box-shadow:var(--shadow-1);margin-bottom:12px;border-bottom:0" data-goto="' + it.route + '">' +
+              '<span class="ico" style="background:' + it.tone + '22;color:' + it.tone + '">' + CBE.icon(it.icon, { size: 21 }) + '</span>' +
+              '<span class="txt"><b>' + U.esc(it.name) + '</b><small>' + U.esc(it.sub) + '</small></span>' +
+              '<span class="chev">' + CBE.icon('chevronRight', { size: 20 }) + '</span></button>';
+          }).join('') + '</div>' +
+        '</div>' +
       '</section>';
     }
   });
 
-  /* ----------------------------------------------------------- wallet grid */
+  /* -------------------------------------------------- account validation */
+  CBE.define('accountValidation', {
+    render: function () {
+      var st = CBE.serviceActions.other();
+      return '<section class="screen">' +
+        '<div class="screen-body no-nav">' +
+          U.appbar(t('accountValidation'), { right: '' }) +
+          '<div class="field-label" style="margin-top:20px">' + U.esc(t('bankName')) + '</div>' +
+          '<button class="field" style="width:100%;text-align:left" data-action="pickOtherBank">' +
+            '<span class="fico">' + CBE.icon('bank', { size: 20 }) + '</span>' +
+            '<span style="flex:1;font-size:15.5px;font-weight:600;color:' + (st.bank ? '#1e2430' : '#98a0ac') + '">' +
+              U.esc(st.bank ? st.bank.name : t('selectFromList')) + '</span>' +
+            '<span class="tail">' + CBE.icon('chevronDown', { size: 20 }) + '</span>' +
+          '</button>' +
+          '<div class="field-label" style="margin-top:20px">' + U.esc(t('account')) + '</div>' +
+          '<div class="field" id="ot-account-field" style="margin-top:0">' +
+            '<span class="fico">' + CBE.icon('card', { size: 20 }) + '</span>' +
+            '<input id="ot-account" inputmode="numeric" maxlength="13" placeholder="' + U.esc(t('enterAccountNumber')) + '" autocomplete="off">' +
+          '</div>' +
+          '<div class="field-error" id="ot-account-error" style="display:none"></div>' +
+          '<button class="btn btn-primary" style="margin-top:26px" data-action="validateOtherAccount">' + U.esc(t('continue')) + '</button>' +
+        '</div>' +
+      '</section>';
+    },
+    after: function () {
+      var input = document.getElementById('ot-account');
+      if (!input) return;
+      input.addEventListener('input', function () {
+        input.value = input.value.replace(/\D/g, '').slice(0, 13);
+        var f = document.getElementById('ot-account-field');
+        var e = document.getElementById('ot-account-error');
+        if (f) f.classList.remove('invalid');
+        if (e) e.style.display = 'none';
+      });
+    }
+  });
+
+  CBE.define('otherTransferAmount', {
+    render: function () {
+      var st = CBE.serviceActions.other();
+      return '<section class="screen">' +
+        '<div class="screen-body no-nav">' +
+          U.appbar(t('amount'), { right: '' }) +
+          '<div class="recip-card"><span class="rc-ico">' + CBE.icon('bank', { size: 21 }) + '</span>' +
+            '<span class="rc-txt"><b>' + U.esc(st.holder || CBE.state.receiverName) + '</b>' +
+            '<small>' + U.esc((st.bank ? st.bank.name + ' · ' : '') + U.maskAccount(st.account)) + '</small></span></div>' +
+          fromAccountCard() +
+          '<div class="field" id="ota-amount-field">' +
+            '<span class="fico">' + CBE.icon('wallet', { size: 20 }) + '</span>' +
+            '<input id="ota-amount" inputmode="decimal" placeholder="' + U.esc(t('amount')) + '*" autocomplete="off">' +
+            '<span class="tail" data-action="openAmountSheetOther" style="cursor:pointer">' + CBE.icon('calculator', { size: 20 }) + '</span>' +
+          '</div>' +
+          '<button class="btn btn-primary" style="margin-top:26px" data-action="otherTransferPay">' + U.esc(t('transfer')) + '</button>' +
+        '</div>' +
+      '</section>';
+    }
+  });
+
+  /* --------------------------------------------------------------- wallet */
   CBE.define('wallet', {
     render: function () {
+      var wallets = CBE.data.wallets.concat([{ id: 'vita', name: 'VitaBirr', brand: 'vita' }]);
       return '<section class="screen">' +
-        U.appbar(CBE.t('wallet')) +
-        '<div class="sheet-light"><div class="screen-body">' +
-          '<div class="logo-grid" style="margin-top:6px">' +
-            CBE.data.wallets.map(function (w) {
-              return '<button class="logo-tile" data-goto="walletAmount" data-action="goto" data-value="' + U.esc(w.name) + '">' +
-                '<span class="brand">' + CBE.logoFor(w, 46) + '</span>' +
-                '<span>' + U.esc(w.name) + '</span></button>';
-            }).join('') +
-          '</div>' +
-        '</div></div>' +
-        U.tabbar('home') +
+        '<div class="screen-body no-nav">' +
+          U.appbar(t('wallet')) +
+          '<div class="wallet-grid" style="padding-top:18px">' + wallets.map(function (w) {
+            return U.walletTile({ title: w.name, logo: w.logo, brand: w.brand, action: 'walletTransfer', value: w.id });
+          }).join('') + '</div>' +
+        '</div>' +
       '</section>';
     }
   });
 
-  CBE.define('walletAmount', {
+  /* --------------------------------------------------------- micro finance */
+  CBE.define('microForm', {
+    render: function () {
+      var st = CBE.serviceActions.other();
+      return '<section class="screen">' +
+        '<div class="screen-body no-nav">' +
+          U.appbar(t('microFinances'), { right: '' }) +
+          '<div class="field-label" style="margin-top:20px">' + U.esc('Micro Finance') + '</div>' +
+          '<button class="field" style="width:100%;text-align:left" data-action="pickMfi">' +
+            '<span class="fico">' + CBE.icon('moneyBag', { size: 20 }) + '</span>' +
+            '<span style="flex:1;font-size:15.5px;font-weight:600;color:' + (st.mfi ? '#1e2430' : '#98a0ac') + '">' +
+              U.esc(st.mfi ? st.mfi.name : t('selectFromList')) + '</span>' +
+            '<span class="tail">' + CBE.icon('chevronDown', { size: 20 }) + '</span>' +
+          '</button>' +
+          '<div class="field-label" style="margin-top:20px">' + U.esc(t('account')) + '</div>' +
+          '<div class="field" id="mfi-account-field" style="margin-top:0">' +
+            '<span class="fico">' + CBE.icon('card', { size: 20 }) + '</span>' +
+            '<input id="mfi-account" inputmode="numeric" maxlength="13" placeholder="' + U.esc(t('enterAccountNumber')) + '">' +
+          '</div>' +
+          '<div class="field-error" id="mfi-account-error" style="display:none"></div>' +
+          '<button class="btn btn-primary" style="margin-top:26px" data-action="mfiPay">' + U.esc(t('continue')) + '</button>' +
+        '</div>' +
+      '</section>';
+    }
+  });
+
+  /* ---------------------------------------------------------------- SACCO */
+  CBE.define('saccos', {
     render: function (p) {
-      var name = p.value || p.name || 'TeleBirr';
+      var q = (p.q || '').toLowerCase();
+      var list = CBE.data.saccos.filter(function (s) { return !q || s.name.toLowerCase().indexOf(q) >= 0; });
       return '<section class="screen">' +
-        U.appbar(name) +
-        '<div class="sheet-light"><div class="screen-body">' +
-          '<div class="field-label" style="margin-top:14px">' + U.esc(CBE.t('phoneNumber')) + '</div>' +
-          U.field({ icon: 'phoneHandset', inputId: 'w-phone', name: 'phone', placeholder: '09** *** ** **', inputmode: 'tel' }) +
-          '<div class="field-label">' + U.esc(CBE.t('amount')) + '</div>' +
-          U.field({ icon: 'cash', inputId: 'w-amount', name: 'amount', placeholder: CBE.t('enterAmount'), inputmode: 'decimal', tailAction: 'openAmountSheet', tail: CBE.icon('card', { size: 20 }) }) +
-          '<button class="btn btn-primary" style="margin-top:22px" data-action="walletPay" data-value="' + U.esc(name) + '">' + U.esc(CBE.t('continue')) + '</button>' +
-          '<div class="pill-note">' + CBE.icon('shieldCheck', { size: 21 }) +
-            '<span>Funds move instantly to <b>' + U.esc(name) + '</b>. Service charge of ETB 0.50 plus VAT applies.</span></div>' +
-        '</div></div>' +
+        '<div class="screen-body no-nav">' +
+          U.appbar(t('sacco')) +
+          '<div class="field" style="margin-top:16px"><span class="fico muted">' + CBE.icon('search', { size: 20 }) +
+            '</span><input id="sacco-search" placeholder="' + U.esc(t('search')) + '" value="' + U.esc(p.q || '') + '"></div>' +
+          '<div style="padding-top:10px">' + (list.length ? list.map(function (s) {
+            return '<button class="bank-row" data-action="saccoPay" data-value="' + U.esc(s.name) + '">' +
+              '<span class="lg">' + CBE.logoFor(s, 38) + '</span>' +
+              '<span class="txt"><b>' + U.esc(s.name) + '</b></span>' +
+              '<span class="chev" style="margin-left:auto;color:#b9bfc9">' + CBE.icon('chevronRight', { size: 20 }) + '</span></button>';
+          }).join('') : U.emptyState(t('noResults'))) + '</div>' +
+        '</div>' +
       '</section>';
-    }
-  });
-
-  /* ------------------------------------------------------ Account Validation */
-  CBE.define('bankValidation', {
-    render: function () {
-      var sel = CBE.state.selectedBank;
-      return '<section class="screen">' +
-        U.appbar('Account Validation') +
-        '<div class="sheet-light"><div class="screen-body">' +
-          '<div class="field-label" style="margin-top:14px">' + U.esc(CBE.t('bankName')) + '</div>' +
-          '<button class="field" data-action="pickBank" style="width:100%">' +
-            '<span class="fico">' + CBE.icon('columns', { size: 21 }) + '</span>' +
-            '<span style="flex:1;text-align:left;color:' + (sel ? 'var(--ink)' : '#a7aeb4') + ';font-size:15px">' +
-              U.esc(sel ? sel.name : CBE.t('selectFromList')) + '</span>' +
-            '<span class="tail">' + CBE.icon('chevronDown', { size: 20 }) + '</span></button>' +
-          '<div class="field-label">' + U.esc(CBE.t('account')) + '</div>' +
-          U.field({ icon: 'edit', inputId: 'b-account', name: 'account', placeholder: CBE.t('enterAccountNumber'), inputmode: 'numeric', maxlength: 18 }) +
-          '<button class="btn btn-primary" style="margin-top:22px" data-action="validateBank">' + U.esc(CBE.t('continue')) + '</button>' +
-        '</div></div>' +
-      '</section>';
-    }
-  });
-
-  /* --------------------------------------------------------- Receive Money */
-  CBE.define('receive', {
-    render: function () {
-      var p = CBE.state.profile;
-      var acc = U.maskAccount(p.accountNumber);
-      var payload = String(p.accountNumber) + '|' + receiveAmount.toFixed(2) + '|Mobile Banking';
-      return '<section class="screen">' +
-        U.appbar(CBE.t('receiveMoney')) +
-        '<div class="sheet-light"><div class="screen-body">' +
-          '<div class="receive-card">' +
-            '<div class="brandline">' + CBE.cbeLogo(30) +
-              '<div><div class="n">' + U.esc(CBE.t('bankNameLong')) + '</div>' +
-              '<div class="t">' + U.esc(CBE.t('tagline')) + '</div></div></div>' +
-            '<div class="acct-no"><span>' + U.esc(CBE.t('accountNo')) + '</span><b>' + U.esc(acc) + '</b></div>' +
-            '<div class="amrow">' +
-              '<div><div class="lbl">Amount</div><div class="val">' + U.money(receiveAmount) + '</div></div>' +
-              '<div class="reason"><div class="lbl">' + U.esc(CBE.t('reason')) + '</div><div class="val">Mobile Banking</div></div>' +
-            '</div>' +
-            '<div class="qr-frame">' + CBE.qr.svg(payload, { modules: 37 }) +
-              '<span class="qr-logo">' + CBE.cbeLogo(26) + '</span></div>' +
-            '<div class="receive-actions">' +
-              '<button class="act" data-action="shareQr"><span class="ico">' + CBE.icon('share', { size: 22 }) + '</span>' + U.esc(CBE.t('shareQr')) + '</button>' +
-              '<button class="act" data-action="copyLink"><span class="ico">' + CBE.icon('link', { size: 22 }) + '</span>' + U.esc(CBE.t('copyLink')) + '</button>' +
-              '<button class="act" data-action="downloadQr"><span class="ico">' + CBE.icon('download', { size: 22 }) + '</span>' + U.esc(CBE.t('download')) + '</button>' +
-            '</div>' +
-            '<button class="btn btn-primary" data-action="addReceiveAmount">' + U.esc(CBE.t('addAmount')) + '</button>' +
-          '</div>' +
-          '<div class="pill-note" style="margin-top:16px">' + CBE.icon('shieldCheck', { size: 21 }) +
-            '<span>Anyone with this QR can pay into <b>' + U.esc(acc) + '</b>. The code is generated offline on your device.</span></div>' +
-        '</div></div>' +
-        U.tabbar('home') +
-      '</section>';
-    }
-  });
-
-  /* ------------------------------------------------------------- actions */
-  CBE.transferActions = {
-    setTab: function (tab) { transferTab = tab; CBE.render(); },
-    form: form,
-    resetForm: resetForm,
-    collect: function () {
-      var f = form();
-      var a = document.getElementById('f-account');
-      var m = document.getElementById('f-amount');
-      var r = document.getElementById('f-remark');
-      if (a) f.account = a.value.trim();
-      if (m) f.amount = m.value.replace(/[^\d.]/g, '');
-      if (r) f.remark = r.value.trim();
-      return f;
     },
-    setAmount: function (v) {
-      form().amount = String(v);
-      CBE.render();
-    },
-    pickPreset: function () {
-      CBE.pickers.sheet('Recent receivers', CBE.state.recents, function (item) {
-        var f = form();
-        f.account = String(item.account).replace(/\D/g, '');
-        CBE.render();
-        U.toast(item.name + ' filled in');
-      }, { searchable: true });
-    },
-    continueTransfer: function () {
-      var f = CBE.transferActions.collect();
-      var preset = CBE.state.preset || {};
-      var digits = String(f.account || '').replace(/\D/g, '');
-      if (!digits) digits = String(preset.account || '').replace(/\D/g, '');
-      if (!digits || digits.length < 6) { U.toast('Enter a valid account number'); return; }
-      if (!(Number(f.amount) > 0)) { U.toast('Enter a valid amount'); return; }
-      var known = CBE.state.recents.filter(function (r) {
-        return String(r.account).slice(-4) === digits.slice(-4);
-      })[0];
-      var recipient = {
-        name: preset.name || (known ? known.name : ''),
-        account: U.maskAccount(digits),
-        accountRaw: digits,
-        bank: (known && known.bank) || CBE.t('bankNameLong')
-      };
-      CBE.nav('transfer', { recipient: recipient, amount: Number(f.amount), remark: f.remark });
-    },
-    useRecipient: function (id) {
-      var r = CBE.state.recents.concat(CBE.state.beneficiaries).filter(function (x) { return x.id === id; })[0];
-      if (!r) return;
-      CBE.nav('transfer', { recipient: { name: r.name, account: r.account } });
-    },
-    deleteRecent: function (id) {
-      CBE.state.recents = CBE.state.recents.filter(function (r) { return r.id !== id; });
-      CBE.save();
-      CBE.render();
-      U.toast('Recipient removed');
-    },
-    doTransfer: function () {
-      var st = CBE.currentScreen().params || {};
-      var preset = CBE.state.preset || {};
-      var presetRaw = String(preset.account || '');
-      var recipient = st.recipient || (CBE.state.transferDraft && CBE.state.transferDraft.recipient) || null;
-      var amtEl = document.getElementById('f-amount');
-      var remEl = document.getElementById('f-remark');
-      var amount = amtEl && amtEl.value ? Number(String(amtEl.value).replace(/[^\d.]/g, '')) : Number(st.amount);
-      var remark = remEl ? remEl.value.trim() : (st.remark || '');
-      if (!(amount > 0)) { U.toast('Enter a valid amount'); return; }
-      if (!recipient || !recipient.name) {
-        recipient = {
-          name: (recipient && recipient.name) || preset.name || '',
-          account: (recipient && recipient.account) || (presetRaw ? U.maskAccount(presetRaw) : ''),
-          accountRaw: (recipient && recipient.accountRaw) || presetRaw
-        };
-      }
-      if (!recipient.name) { U.toast('Enter the receiver name in the private setup'); return; }
-      CBE.pay.start({
-        kind: 'transfer', tag: 'ACCOUNT TO ACCOUNT', charges: true,
-        toName: recipient.name, toAcc: recipient.account || '',
-        toAccRaw: recipient.toAccRaw || recipient.accountRaw || '',
-        bank: recipient.bank || CBE.t('bankNameLong'),
-        amount: amount, remark: remark
+    after: function () {
+      var input = document.getElementById('sacco-search');
+      if (!input) return;
+      CBE._saccoSearch = function (v) { CBE.nav('saccos', { q: v }); };
+      input.addEventListener('input', function () {
+        var q = input.value.toLowerCase();
+        var node = document.getElementById('screen-root');
+        var list = CBE.data.saccos.filter(function (s) { return !q || s.name.toLowerCase().indexOf(q) >= 0; });
+        var host = node.querySelector('.screen-body > div:last-child');
+        if (host) {
+          host.innerHTML = list.length ? list.map(function (s) {
+            return '<button class="bank-row" data-action="saccoPay" data-value="' + U.esc(s.name) + '">' +
+              '<span class="lg">' + CBE.logoFor(s, 38) + '</span>' +
+              '<span class="txt"><b>' + U.esc(s.name) + '</b></span>' +
+              '<span class="chev" style="margin-left:auto;color:#b9bfc9">' + CBE.icon('chevronRight', { size: 20 }) + '</span></button>';
+          }).join('') : U.emptyState(t('noResults'));
+        }
       });
-    },
-    validateBank: function () {
-      var bank = CBE.state.selectedBank;
-      var acc = document.getElementById('b-account');
-      var value = acc ? acc.value.trim() : '';
-      if (!bank) { U.toast('Select a bank from the list'); return; }
-      if (!value || value.length < 8) { U.toast('Enter a valid account number'); return; }
-      var masked = U.maskAccount(value);
-      CBE.state.transferDraft = { recipient: { name: 'CBE Account Holder', account: masked, bank: bank.name } };
-      CBE.nav('transfer', { recipient: { name: 'CBE Account Holder', account: masked, bank: bank.name } });
-    },
-    walletPay: function (name) {
-      var phone = document.getElementById('w-phone');
-      var amount = document.getElementById('w-amount');
-      var ph = phone ? phone.value.trim() : '';
-      var amt = amount ? Number(String(amount.value).replace(/[^\d.]/g, '')) : 0;
-      if (ph.length < 9) { U.toast('Enter a valid phone number'); return; }
-      if (!(amt > 0)) { U.toast('Enter a valid amount'); return; }
-      CBE.pay.start({ kind: 'wallet', tag: 'WALLET', charges: true, toName: name, toAcc: ph, amount: amt });
-    },
-    setReceiveAmount: function (v) { receiveAmount = Number(v) || 0; CBE.render(); },
-    getReceiveAmount: function () { return receiveAmount; }
-  };
+    }
+  });
+
+  /* -------------------------------------------------------------- scanner */
+  CBE.define('scanner', {
+    render: function () {
+      return '<section class="screen">' +
+        '<div class="screen-body no-nav">' +
+          U.appbar(t('scanQr'), { right: '' }) +
+          '<div class="scan-box"><span class="frame"></span><span class="line"></span></div>' +
+          '<p class="center muted" style="font-size:13px;margin-top:16px">Align the QR code inside the frame to pay instantly.</p>' +
+          '<button class="btn btn-soft" style="margin-top:22px" data-action="goto" data-goto="cbeTransfer">Enter account manually</button>' +
+        '</div>' +
+      '</section>';
+    }
+  });
 })(typeof window !== 'undefined' ? window : this);
