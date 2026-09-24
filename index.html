@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#5d1793">
+<title>CBE Mobile Banking</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="img/cbe-logo.png">
+<link rel="apple-touch-icon" href="img/cbe-logo.png">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/screens.css">
+</head>
+<body>
+
+<div class="app" id="app">
+  <div class="layer-screen" id="layer-screen" aria-live="polite"></div>
+  <div class="layer-overlay" id="layer-overlay"></div>
+  <div class="layer-toast" id="layer-toast"></div>
+</div>
+
+<noscript>CBE Mobile Banking needs JavaScript enabled.</noscript>
+
+<script src="js/core/util.js"></script>
+<script src="js/core/icons.js"></script>
+<script src="js/core/brands.js"></script>
+<script src="js/core/qr.js"></script>
+<script src="js/core/overlay.js"></script>
+<script src="js/core/store.js"></script>
+<script src="js/core/guard.js"></script>
+<script src="js/core/router.js"></script>
+<script src="js/screens/auth.js"></script>
+<script src="js/screens/home.js"></script>
+<script src="js/screens/transfer.js"></script>
+<script src="js/screens/receipt.js"></script>
+<script src="js/screens/services.js"></script>
+<script src="js/screens/settings.js"></script>
+<script src="js/screens/misc.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

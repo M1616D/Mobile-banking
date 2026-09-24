@@ -1,0 +1,216 @@
+/* ==========================================================================
+   layout.css — the app shell. One screen is mounted at a time inside a
+   scrollable body; the tab bar floats at the bottom; overlays live in their
+   own layer above everything.
+   ========================================================================== */
+
+.app {
+  position: relative;
+  width: 100%;
+  max-width: var(--app-max);
+  height: 100dvh;
+  margin: 0 auto;
+  overflow: hidden;
+  background: var(--surface-sunk);
+  isolation: isolate;
+}
+
+@supports (height: 100svh) {
+  .app { height: 100svh; }
+}
+
+/* on a wide screen the app stays a phone-width column, centred */
+@media (min-width: 760px) {
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(120% 80% at 50% 0%, #262932 0%, #14161b 100%);
+  }
+  .app {
+    height: min(880px, 96dvh);
+    border-radius: 28px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, .55);
+  }
+}
+
+/* --------------------------------------------------------------- layers */
+.app > .layer-screen,
+.app > .layer-overlay {
+  position: absolute;
+  inset: 0;
+}
+
+.layer-screen { z-index: 1; }
+.layer-overlay { z-index: 40; pointer-events: none; }
+.layer-overlay > * { pointer-events: auto; }
+
+/* --------------------------------------------------------------- screen */
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-sunk);
+  contain: layout paint style;
+}
+
+/* the scrollable part of a screen */
+.screen-body {
+  flex: 1 1 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  contain: content;
+  padding: var(--gutter) var(--gutter) calc(var(--s-5) + var(--safe-bottom));
+}
+
+.screen-body--flush { padding: 0 0 calc(var(--s-5) + var(--safe-bottom)); }
+.screen-body--nav { padding-bottom: calc(var(--navbar-h) + 24px + var(--safe-bottom)); }
+.screen-body::-webkit-scrollbar { display: none; }
+
+/* a full-bleed surface panel used by the "coming soon" style screens */
+.panel {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0 10px 10px;
+  overflow: hidden;
+  background: #faf9fc;
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+}
+
+/* --------------------------------------------------------------- appbar */
+.appbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--appbar-h);
+  padding: calc(6px + var(--safe-top)) 8px 6px;
+  color: #fff;
+  background: var(--brand-grad);
+}
+
+.appbar__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0 2px;
+  font-size: 18.5px;
+  font-weight: 700;
+  letter-spacing: .01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.appbar--centered .appbar__title { text-align: center; }
+.appbar--light {
+  background: var(--surface);
+  color: var(--ink-800);
+  border-bottom: 1px solid var(--surface-edge);
+}
+
+.appbar__tools { display: flex; align-items: center; gap: 2px; margin-left: auto; }
+
+/* the appbar escapes the body padding so it always spans edge to edge */
+.screen-body > .appbar { margin: calc(var(--gutter) * -1) calc(var(--gutter) * -1) 6px; }
+.screen-body--flush > .appbar { margin: 0 0 6px; }
+
+/* ------------------------------------------------------------- icon btn */
+.icon-btn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-full);
+  color: inherit;
+  transition: background-color var(--t-fast) linear;
+}
+
+.icon-btn:active { background: rgba(255, 255, 255, .18); }
+.appbar--light .icon-btn:active,
+.icon-btn--ink:active { background: rgba(0, 0, 0, .06); }
+.icon-btn--ink { color: var(--ink-600); }
+
+/* --------------------------------------------------------------- tabbar */
+.tabbar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  padding: 0 6px var(--safe-bottom);
+  background: var(--nav-bar);
+  border-top: 1px solid rgba(0, 0, 0, .05);
+  box-shadow: 0 -2px 12px rgba(24, 16, 40, .06);
+}
+
+.tabbar__inner { display: flex; height: var(--navbar-h); }
+
+.tab {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--nav-idle);
+  transition: color var(--t-fast) linear;
+}
+
+.tab__pill {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 30px;
+  border-radius: var(--r-full);
+  background: transparent;
+  transition: background-color var(--t-base) var(--ease-out);
+}
+
+.tab.is-active { color: var(--brand-700); font-weight: 700; }
+.tab.is-active .tab__pill { background: var(--nav-pill); }
+.tab:active .tab__pill { background: rgba(0, 0, 0, .05); }
+
+/* ---------------------------------------------------------------- fab */
+.fab {
+  position: absolute;
+  right: var(--gutter);
+  bottom: calc(var(--navbar-h) + 20px + var(--safe-bottom));
+  z-index: 22;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  height: 50px;
+  padding: 0 var(--s-5);
+  border-radius: var(--r-md);
+  background: var(--brand-grad);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: var(--e-brand);
+}
+
+/* ------------------------------------------------------------- overlay */
+.scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background: rgba(16, 10, 26, .5);
+  animation: scrim-in .18s linear both;
+}
+
+@keyframes scrim-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sheet-in { from { transform: translate3d(0, 100%, 0); } to { transform: translate3d(0, 0, 0); } }
+@keyframes pop-in { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: scale(1); } }
+
+.scrim--center { align-items: center; justify-content: center; }

@@ -1,0 +1,16 @@
+# Codebuff internal state — not part of the project
+.freebuff/
+_th/
+_th2/
+_v/
+_rv/
+_chk/
+_ref/
+
+# OS noise
+Thumbs.db
+.DS_Store
+
+# the reference video is not part of the project
+ui/full video.mp4
+ui/*.mp4
