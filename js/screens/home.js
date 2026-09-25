@@ -1,225 +1,194 @@
-/* ==========================================================================
-   home.js — the greeting bar, the balance card, the tool tiles, the six
-   service cards, the quick row and the transactions list.
-   ========================================================================== */
-(function (global) {
-  'use strict';
+/* CBE Mobile Banking — home, drawer, notifications, transactions, scan & receive */
+(function () {
+  const U = CBE.util;
 
-  var CBE = global.CBE || (global.CBE = {});
-  var h = CBE.h, icon = CBE.icon, raw = CBE.raw;
-  var st = CBE.state;
+  CBE.router.on('home', function () {
+    const S = CBE.state;
+    const hide = S.settings.hideBalance;
+    const bal = hide ? '******' : U.fmt(S.balance);
+    const accTail = U.esc(S.account.number.slice(-4));
 
-  var HIDDEN = true;                     /* amount masked on first paint */
-  function isHidden() { return HIDDEN; }
-  function toggleHidden() { HIDDEN = !HIDDEN; }
+    const quick = [
+      ['miniStatement', 'doc', 'Mini<br>Statement'],
+      ['cashOut', 'cash', 'Cash Out'],
+      ['billShare', 'share', 'Bill Share'],
+      ['cards', 'card', 'Cards'],
+      ['schedules', 'calendar', 'Schedules'],
+      ['receiptsHub', 'bookmark', 'Receipt']
+    ];
 
-  /* --------------------------------------------------------- greeting bar */
-  function homeBar() {
-    return h`
-      <header class="appbar appbar--home">
-        <button class="icon-btn" data-a="myInformation" aria-label="My information">${raw(icon('grid4', 19, 'grid-mark'))}</button>
-        <div class="greeting">
-          <small>Hello,</small>
-          <b>${firstName()}</b>
-        </div>
-        <button class="lang-pill" data-a="langSheet">${st.lang === 'am' ? '\u12a0\u121b\u122d\u129b' : 'English'} ${raw(icon('chevronDown', 13))}</button>
-        <button class="icon-btn" data-a="refresh" aria-label="Refresh">${raw(icon('refresh', 21))}</button>
-        <button class="icon-btn" data-a="search" aria-label="Search">${raw(icon('search', 22))}</button>
-      </header>`;
-  }
+    const grid = [
+      ['cbeTransfer', 'send', 'purple', 'CBE Transfer', 'Send Money'],
+      ['receive', 'receive', 'green', 'Receive', 'Get Paid'],
+      ['airtime', 'phone', 'orange', 'Airtime', ''],
+      ['otherTransfers', 'swap', 'teal', 'Other Transfers', ''],
+      ['cbebirr', 'coin', 'violet', 'CBEBirr', ''],
+      ['bills', 'utility', 'blue', 'Bills & Utilities', ''],
+      ['banking', 'bank', 'slate', 'Banking', ''],
+      ['govServices', 'gov', 'gold-c', 'Government Services', ''],
+      ['payMerchant', 'cart', 'green', 'Pay to Merchant', ''],
+      ['travel', 'plane', 'blue', 'Travel', ''],
+      ['shopping', 'cart', 'orange', 'Shopping', ''],
+      ['entertainment', 'film', 'red', 'Entertainment', ''],
+      ['payFor', 'gift', 'violet', 'Pay for', ''],
+      ['taxPayment', 'tax', 'slate', 'Tax Payment', ''],
+      ['esl', 'ship', 'teal', 'Ethiopian Shipping & Logistics', ''],
+      ['fastLoan', 'percent', 'gold-c', 'CBE Fast Loan', '']
+    ];
 
-  function firstName() {
-    var parts = String(st.holder.name || '').trim().split(/\s+/);
-    return parts.length ? parts[0] : 'there';
-  }
-
-  /* ---------------------------------------------------------- balance card */
-  function balCard() {
-    var noor = st.noor;
-    var brand = noor
-      ? h`<div class="bal-card__brand bal-card__brand--noor">
-            <span style="display:grid;place-items:center;width:28px;height:28px;background:linear-gradient(140deg,#a04a6a,#5d1793);border-radius:6px;color:#fff;font:700 10px/1 Georgia,serif">\u0646\u0648\u0631</span>
-            <span style="text-align:left">
-              <b>CBE NOOR</b>
-              <small>\u1209\u120d \u1291\u122d</small>
-            </span>
-          </div>`
-      : h`<div class="bal-card__brand">
-            <img src="img/cbe-logo.png" alt="">
-            <span style="text-align:left">
-              <b>${st.letterhead.company}</b>
-              <small>${st.letterhead.tagline}</small>
-            </span>
-          </div>`;
-
-    var amount = isHidden()
-      ? '<b style="letter-spacing:.06em">******</b>'
-      : '<b>' + CBE.money(st.holder.balance) + '</b>';
-
-    var account = isHidden()
-      ? CBE.cardAcct(st.holder.account)
-      : CBE.digits(st.holder.account);
-
-    return h`
-      <div class="bal-wrap">
-        <div class="bal-card">
-          ${raw(brand)}
-          <div class="bal-card__amount">
-            ${raw(amount)}<span>ETB</span>
-            <button class="bal-card__eye" data-a="toggleAmount" aria-label="${isHidden() ? 'Show' : 'Hide'} balance">
-              ${raw(icon(isHidden() ? 'eyeOff' : 'eye', 21))}
-            </button>
-          </div>
-          <div class="bal-card__acc">
-            <span>${st.accountType} ${account}</span>
-            <button class="icon-btn" data-a="copyAccount" aria-label="Copy account number">${raw(icon('copy', 15))}</button>
-          </div>
-          <div class="bal-card__time">${CBE.fmtDay(new Date(st.accountUpdated || Date.now()))}</div>
-        </div>
-      </div>`;
-  }
-
-  /* ---------------------------------------------------------------- tiles */
-  var TILES = [
-    { label: 'Mini Statement', icon: 'doc', go: 'miniStatement' },
-    { label: 'Cash Out', icon: 'coins', go: 'cashOut' },
-    { label: 'Bill Share', icon: 'share', go: 'billShare' },
-    { label: 'Cards', icon: 'creditCard', go: 'cards' },
-    { label: 'CBE Fast Loan', icon: 'bolt', go: 'fastLoan' },
-    { label: 'Shopping', icon: 'cart', go: 'shopping' },
-    { label: 'Tax Payment', icon: 'percent', go: 'taxPayment' },
-    { label: 'Pay Merchant', icon: 'tag', go: 'payMerchant' },
-    { label: 'Forex', icon: 'exchange', go: 'forex' },
-    { label: 'Loan Products', icon: 'bankCard', go: 'loanProducts' },
-    { label: 'Micro Finance', icon: 'briefcase', go: 'microFinance' },
-    { label: 'SACCO', icon: 'users', go: 'sacco' },
-    { label: 'Traffic Fine', icon: 'car', go: 'trafficFine' },
-    { label: 'Donation', icon: 'gift', go: 'donation' }
-  ];
-
-  function tileRow() {
-    return h`
-      <div class="tile-wrap">
-        <div class="tile-row">
-          ${TILES.map(function (t) {
-            return h`<button class="tile" data-a="go" data-go="${t.go}" data-label="${t.label}">
-              <span class="tile__icon">${raw(icon(t.icon, 22))}</span>
-              <span class="tile__label">${t.label}</span>
-            </button>`;
-          })}
-        </div>
-      </div>`;
-  }
-
-  var CARDS = [
-    { label: 'CBE Transfer', sub: 'Send Money', icon: 'arrowUpRight', tone: 'rose', go: 'cbeTransfer' },
-    { label: 'Receive', sub: 'Get Paid', icon: 'arrowDownLeft', tone: 'mint', go: 'receiveMoney' },
-    { label: 'Airtime', icon: 'phone', tall: true, go: 'airtime' },
-    { label: 'Other Transfers', icon: 'arrowsSwap', tall: true, go: 'otherTransfers' },
-    { label: 'CBEBirr', icon: 'wallet', tall: true, go: 'cbeBirr' },
-    { label: 'Bills & Utilities', icon: 'listRows', tall: true, go: 'bills' }
-  ];
-
-  function cardGrid() {
-    return h`
-      <div class="card-grid">
-        ${CARDS.map(function (c) {
-          return h`<button class="card-btn${c.tall ? ' card-btn--tall' : ''}" data-a="go" data-go="${c.go}" data-label="${c.label}">
-            <span class="card-btn__icon${c.tone ? ' card-btn__icon--disc card-btn__icon--' + c.tone : ''}">${raw(icon(c.icon, c.tall ? 26 : 22))}</span>
-            <span class="card-btn__text">
-              <b>${c.label}</b>
-              ${c.sub ? raw('<small>' + CBE.esc(c.sub) + '</small>') : ''}
-            </span>
-          </button>`;
-        })}
-      </div>`;
-  }
-
-  function quickRow() {
-    return h`
-      <div class="quick-row">
-        <button class="quick-row__item" data-a="go" data-go="branches" aria-label="Branches">${raw(icon('bank', 26))}</button>
-        <button class="scan-pill" data-a="go" data-go="scanner">${raw(icon('qr', 22))}<span>Scan QR</span></button>
-        <button class="quick-row__item" data-a="go" data-go="agents" aria-label="Agents">${raw(icon('atm', 26))}</button>
-      </div>`;
-  }
-
-  /* ================================================================ screens */
-  CBE.define('home', function () {
-    return {
-      appbar: false,
-      bodyClass: 'home-body',
-      nav: 'home',
-      body: h`
-        ${raw(homeBar())}
-        ${raw(balCard())}
-        <div class="handle"></div>
-        <div class="sect">${raw(tileRow())}</div>
-        ${raw(cardGrid())}
-        ${raw(quickRow())}`,
-      onMount: function (node) {
-        pageTiles(node);
-      },
-      fab: ''
-    };
+    const el = CBE.ui.el(
+      '<div class="page" data-screen="home">' +
+      '<div class="hello">' +
+      '<button class="bell" data-a="notifications">' + CBE.icon('bell', 20) + '</button>' +
+      '<div class="hello-tx"><div class="t1">Hello,</div><div class="t2">' + U.esc(S.holder.name.split(' ')[0]) + '</div></div>' +
+      '<button class="lang" data-a="langPick">English ' + CBE.icon('down', 13) + '</button>' +
+      '<button class="sq" data-a="drawer">' + CBE.icon('grid', 20) + '</button>' +
+      '</div>' +
+      '<div class="scroll">' +
+      '<div class="hero">' +
+      '<div class="hero-card">' +
+      '<div class="map-bg"></div>' +
+      '<div class="hero-brand"><img src="img/cbe-logo.png" alt="CBE"><div><div class="t1">Commercial Bank of Ethiopia</div><div class="t2">The bank you can always rely on!</div></div></div>' +
+      '<div class="hero-bal"><span class="amt" id="homeBal">' + bal + '</span><span class="cur">ETB</span></div>' +
+      '<div class="hero-acc"><span class="acc">' + U.esc(S.account.type) + ' 1****' + accTail + '</span>' +
+      '<button class="eye" data-a="toggleBalance">' + CBE.icon(hide ? 'eyeOff' : 'eye', 19) + '</button></div>' +
+      '<div class="hero-date">' + U.homeStamp() + '</div>' +
+      '</div>' +
+      '</div>' +
+      '<div class="quick-row">' +
+      quick.map(([a, ic, lb]) =>
+        '<button class="quick" data-a="' + a + '"><span class="ic">' + CBE.icon(ic, 24) + '</span><span class="lb">' + lb + '</span></button>'
+      ).join('') +
+      '</div>' +
+      '<div class="grid-sec"><div class="grid-2">' +
+      grid.map(([a, ic, cls, lb, sub]) =>
+        '<button class="tile" data-a="' + a + '"><span class="ic ' + cls + '">' + CBE.icon(ic, 22) + '</span>' +
+        '<span class="lb">' + lb + (sub ? '<br><span style="font-weight:600;color:var(--ink-3);font-size:12px">' + sub + '</span>' : '') + '</span></button>'
+      ).join('') +
+      '</div></div>' +
+      '<div class="scan-wrap"><button class="scan-pill" data-a="scanQr">' + CBE.icon('scan', 20) + ' Scan QR</button></div>' +
+      '</div>' +
+      CBE.ui.tabbar('home') +
+      '</div>'
+    );
+    return el;
   });
 
-  /* the tile strip pages through 4 at a time, exactly as the little chevron
-     button on the reference screenshot implies */
-  function pageTiles(node) {
-    var row = node.querySelector('.tile-row');
-    var wrap = node.querySelector('.tile-wrap') || row;
-    if (!row || !wrap) return;
-    if (row.scrollWidth <= row.clientWidth + 4) return;
-    var more = document.createElement('button');
-    more.className = 'tile-more';
-    more.setAttribute('data-a', 'tileNext');
-    more.setAttribute('aria-label', 'More services');
-    more.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.4 5.6 15.8 12l-6.4 6.4"/></svg>';
-    wrap.appendChild(more);
-  }
+  CBE.router.on('drawer', function () {
+    const S = CBE.state;
+    const el = CBE.ui.el(
+      '<div class="page" data-screen="drawer">' +
+      '<div class="drawer-veil" data-a="back"></div>' +
+      '<div class="drawer">' +
+      '<div class="dr-head"><div class="t1">' + U.esc(S.holder.name) + '</div><div class="t2">Last Sign In: ' + U.now() + '</div></div>' +
+      '<div class="dr-body">' +
+      '<div class="scan-row" data-a="receive"><div>' + U.esc(S.account.number) + '</div><div class="hint">Scan this account number.</div></div>' +
+      '<button class="dr-row" data-a="contactUs"><span class="l"><span class="ic">' + CBE.icon('mail', 20) + '</span>Contact Us</span><span class="chev">' + CBE.icon('chev', 16) + '</span></button>' +
+      '<button class="dr-row" data-a="noorToggle"><span class="l"><span class="ic">' + CBE.icon('wifi', 20) + '</span>CBE NOOR</span><span class="val">' + (S.settings.noor ? 'On' : 'Off') + '</span></button>' +
+      '<button class="dr-row" data-a="acctIdent"><span class="l"><span class="ic">' + CBE.icon('card', 20) + '</span>My Accounts</span><span class="val">Account Number</span></button>' +
+      '</div>' +
+      '<div class="dr-foot"><button class="logout" data-a="logout">' + CBE.icon('logout', 18) + ' Log out</button></div>' +
+      '</div>' +
+      '</div>'
+    );
+    return el;
+  });
 
-  CBE.define('transactions', function () {
-    var all = CBE.store.txList();
-    var filter = CBE.txFilter || 'all';
-    var list = all.filter(function (t) {
-      if (filter === 'debit') return t.direction === 'out';
-      if (filter === 'credit') return t.direction === 'in';
-      return true;
+  CBE.router.on('notifications', function () {
+    const S = CBE.state;
+    const items = [];
+    if (S.receipts.length) {
+      S.receipts.slice(0, 8).forEach(r => {
+        items.push(
+          '<div class="notif-item unread"><span class="ic">' + CBE.icon('send', 20) + '</span>' +
+          '<div class="tx"><div class="tt">Transfer successful</div>' +
+          '<div class="ss">ETB ' + U.fmt(r.amount) + ' sent to ' + U.esc(r.toName) + '. Ref: ' + r.id + '</div>' +
+          '<div class="tm">' + U.esc(r.stamp) + '</div></div></div>'
+        );
+      });
+    } else {
+      items.push('<div class="notif-item"><span class="ic">' + CBE.icon('bell', 20) + '</span><div class="tx"><div class="tt">Welcome to CBE Mobile Banking</div><div class="ss">You will see your transaction alerts here.</div><div class="tm">Today</div></div></div>');
+    }
+    return CBE.ui.page({title: 'Notifications', back: true}, '<div class="rows-sec" style="display:flex;flex-direction:column;gap:10px">' + items.join('') + '</div>');
+  });
+
+  CBE.router.on('transactions', function () {
+    const S = CBE.state;
+    const all = S.seedTx.concat(S.receipts.map(r => ({
+      dir: 'out', name: r.toName, amt: r.amount, date: r.stamp.replace(',', ''), kind: 'ACCOUNT TO ACCOUNT'
+    })));
+    const rows = all.map(t =>
+      '<div class="tx-item">' +
+      '<span class="tx-av ' + (t.dir === 'in' ? 'in' : 'out') + '">' + (t.dir === 'in' ? '+' : U.initials(t.name)) + '</span>' +
+      '<span class="tx"><span class="tt">' + U.esc(t.name) + '</span><br><span class="ss">' + U.esc(t.date) + '</span><br><span class="tag">' + U.esc(t.kind) + '</span></span>' +
+      '<span class="amt ' + (t.dir === 'in' ? 'in' : 'out') + '">' + (t.dir === 'in' ? '+' : '-') + U.fmt(t.amt) + ' ETB</span>' +
+      '</div>'
+    ).join('');
+    const el = CBE.ui.el(
+      '<div class="page" data-screen="transactions">' +
+      '<div class="hello">' +
+      '<button class="bell" data-a="notifications">' + CBE.icon('bell', 20) + '</button>' +
+      '<div class="hello-tx"><div class="t1">Hello,</div><div class="t2">' + U.esc(S.holder.name.split(' ')[0]) + '</div></div>' +
+      '<button class="lang" data-a="langPick">English ' + CBE.icon('down', 13) + '</button>' +
+      '<button class="sq" data-a="drawer">' + CBE.icon('grid', 20) + '</button>' +
+      '</div>' +
+      '<div class="seg" style="padding-top:12px">' +
+      '<button class="active" data-a="txFilter" data-f="all">All</button>' +
+      '<button data-a="txFilter" data-f="out">Debited</button>' +
+      '<button data-a="txFilter" data-f="in">Credited</button>' +
+      '</div>' +
+      '<div class="scroll"><div class="rows-sec" style="display:flex;flex-direction:column;gap:10px" id="txList">' + rows + '</div></div>' +
+      CBE.ui.tabbar('transactions') +
+      '</div>'
+    );
+    return el;
+  });
+
+  CBE.router.on('scanQr', function () {
+    return CBE.ui.el(
+      '<div class="page scan-page" data-screen="scanQr">' +
+      '<div class="top"><button class="back" data-a="back" style="color:#fff">' + CBE.icon('back', 22) + '</button><h1>Scan QR</h1></div>' +
+      '<div class="scan-view"><div class="scan-frame"><div class="scan-hint">Place the QR Code within the frame</div></div></div>' +
+      '<div class="scan-actions">' +
+      '<button data-a="soonToast" data-t="Flash">' + CBE.icon('flash', 17) + ' Flash on</button>' +
+      '<button data-a="soonToast" data-t="Gallery">' + CBE.icon('image', 17) + ' Gallery</button>' +
+      '</div>' +
+      '</div>'
+    );
+  });
+
+  CBE.router.on('receive', function () {
+    const S = CBE.state;
+    const el = CBE.ui.el(
+      '<div class="page" data-screen="receive">' +
+      '<div class="appbar"><button class="back" data-a="back">' + CBE.icon('back', 22) + '</button><h1>Receive Money</h1></div>' +
+      '<div class="scroll">' +
+      '<div class="qr-hero">' +
+      '<div class="map-bg"></div>' +
+      '<h2 style="text-align:left">Receive Money</h2>' +
+      '<div class="brand"><img src="img/cbe-mark.png" alt=""><div class="t1">Commercial Bank of Ethiopia</div><div class="t2">The bank you can always rely on!</div></div>' +
+      '<div class="acc">Account No: ' + U.mask(S.account.number) + '</div>' +
+      '<div class="qr-fields">' +
+      '<div class="f"><label>Amount</label><div class="v" id="qrAmt">0.00</div></div>' +
+      '<div class="f"><label>Reason</label><div class="v" style="text-align:right" id="qrReason">Mobile Banking</div></div>' +
+      '</div>' +
+      '</div>' +
+      '<div class="qr-card"><canvas id="qrCanvas"></canvas></div>' +
+      '<div class="qr-actions">' +
+      '<button class="rc-act" data-a="soonToast" data-t="QR shared"><span class="ic">' + CBE.icon('share', 20) + '</span>Share QR</button>' +
+      '<button class="rc-act" data-a="copyAcc"><span class="ic">' + CBE.icon('copy', 20) + '</span>Copy Link</button>' +
+      '<button class="rc-act" data-a="soonToast" data-t="QR saved"><span class="ic">' + CBE.icon('download', 20) + '</span>Download</button>' +
+      '</div>' +
+      '<div class="qr-add"><button class="btn ghost" style="width:240px" data-a="qrAddAmount">ADD AMOUNT</button></div>' +
+      '</div>' +
+      '</div>'
+    );
+    setTimeout(() => {
+      const cv = el.querySelector('#qrCanvas');
+      if (cv && CBE.qr) {
+        try { CBE.qr.draw(cv, 'CBE:' + S.account.number + ':' + S.holder.name, 230); } catch (e) {}
+      }
     });
-    return {
-      appbar: false,
-      bodyClass: 'home-body',
-      nav: 'transactions',
-      body: h`
-        ${raw(homeBar())}
-        ${raw(balCard())}
-        <div class="handle"></div>
-        <div class="tx-tabs">
-          <div class="seg" style="flex:1 1 auto;padding:0">
-            <button class="seg__item${filter === 'all' ? ' is-active' : ''}" data-a="txFilter" data-filter="all"><span>All</span></button>
-            <button class="seg__item${filter === 'debit' ? ' is-active' : ''}" data-a="txFilter" data-filter="debit"><span>Debited</span></button>
-            <button class="seg__item${filter === 'credit' ? ' is-active' : ''}" data-a="txFilter" data-filter="credit"><span>Credited</span></button>
-          </div>
-          <button class="seg__search" data-a="search" aria-label="Search transactions">${raw(icon('search', 22))}</button>
-        </div>
-        <div class="tx-list">
-          ${list.length ? list.map(function (t) {
-            return h`<button class="tx-row" data-a="txOpen" data-name="${t.name}" data-amount="${t.amount}" data-kind="${t.kind}">
-              <span class="tx-row__icon tx-row__icon--${t.direction === 'out' ? 'out' : 'in'}">${raw(icon(t.direction === 'out' ? 'arrowUpRight' : 'arrowDownLeft', 22))}</span>
-              <span class="tx-row__main">
-                <b>${t.name}</b>
-                <small>${CBE.fmtStamp(t.date)}</small>
-              </span>
-              <span class="tx-row__amt">
-                <b class="is-${t.direction === 'out' ? 'out' : 'in'}">${t.amount < 0 ? '-' : '+'}${CBE.money(Math.abs(t.amount))} ETB</b>
-                <span class="chip">${t.kind}</span>
-              </span>
-            </button>`;
-          }) : raw('<div class="empty-state">No transactions in this view.</div>')}
-        </div>`
-    };
+    return el;
   });
-
-  CBE.home = { balCard: balCard, homeBar: homeBar, toggleHidden: toggleHidden, isHidden: isHidden, TILES: TILES };
-})(typeof window !== 'undefined' ? window : this);
+})();

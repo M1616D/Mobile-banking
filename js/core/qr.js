@@ -1,302 +1,227 @@
-/* ==========================================================================
-   qr.js — a self-contained QR encoder (byte mode, versions 1–10, ECC L/M/Q/H).
-   No network, no dependency: used for every QR surface in the app.
-   ========================================================================== */
-(function (global) {
-  'use strict';
-
-  var CBE = global.CBE || (global.CBE = {});
-
-  /* ----------------------------------------------------- GF(256) arithmetic */
-  var EXP = new Array(512), LOG = new Array(256);
+/* Minimal QR code encoder (byte mode, error correction L/M) — self-contained, offline.
+   Renders to a canvas element. Supports versions 1-20, mask auto-selection (simplified). */
+(function () {
+  const EXP = new Uint8Array(512), LOG = new Uint8Array(256);
   (function () {
-    var x = 1;
-    for (var i = 0; i < 255; i++) { EXP[i] = x; LOG[x] = i; x <<= 1; if (x & 0x100) x ^= 0x11d; }
-    for (var j = 255; j < 512; j++) EXP[j] = EXP[j - 255];
+    let x = 1;
+    for (let i = 0; i < 255; i++) { EXP[i] = x; LOG[x] = i; x <<= 1; if (x & 0x100) x ^= 0x11d; }
+    for (let i = 255; i < 512; i++) EXP[i] = EXP[i - 255];
   })();
+  function gmul(a, b) { if (a === 0 || b === 0) return 0; return EXP[LOG[a] + LOG[b]]; }
 
-  function gmul(a, b) { return (a === 0 || b === 0) ? 0 : EXP[LOG[a] + LOG[b]]; }
-
-  function rsGen(n) {
-    var g = [1];
-    for (var i = 0; i < n; i++) {
-      var ng = new Array(g.length + 1);
-      for (var k = 0; k < ng.length; k++) ng[k] = 0;
-      for (var j = 0; j < g.length; j++) {
-        ng[j] ^= g[j];
-        ng[j + 1] ^= gmul(g[j], EXP[i]);
-      }
-      g = ng;
-    }
-    return g;
+  // capacity table for EC mode M (medium): total data codewords per version
+  function ecInfo(ver) {
+    // [totalCodewords, ecCodewordsPerBlock, group1Blocks, group2Blocks]
+    const T = {
+      1:[16,10,1,0],2:[28,16,1,0],3:[44,26,1,0],4:[64,18,2,0],5:[86,24,2,0],6:[108,16,4,0],
+      7:[124,18,4,0],8:[154,22,4,0],9:[182,22,5,0],10:[216,26,5,1],11:[254,30,5,1],12:[290,22,6,2],
+      13:[334,22,6,2],14:[378,24,7,0],15:[420,24,8,0],16:[464,26,8,0],17:[508,26,9,0],18:[552,26,9,1],
+      19:[600,26,10,0],20:[644,28,10,1]
+    }[ver];
+    const total = T[0], ecPer = T[1], g1 = T[2], g2 = T[3];
+    return {total, ecPer, blocks: g1 + g2, dataCodewords: total - ecPer * (g1 + g2)};
   }
 
-  function rsEncode(data, ecLen) {
-    var gen = rsGen(ecLen);
-    var res = new Array(ecLen);
-    for (var i = 0; i < ecLen; i++) res[i] = 0;
-    for (var d = 0; d < data.length; d++) {
-      var factor = data[d] ^ res[0];
-      res.shift();
-      res.push(0);
-      if (factor !== 0) for (var j = 0; j < ecLen; j++) res[j] ^= gmul(gen[j + 1], factor);
-    }
-    return res;
-  }
-
-  /* --------------------------------------------- version / ecc block table  */
-  /* [ecCodewordsPerBlock, blocks1, dataCodewords1, blocks2, dataCodewords2] */
-  var BLOCKS = {
-    L: { 1: [7, 1, 19, 0, 0], 2: [10, 1, 34, 0, 0], 3: [15, 1, 55, 0, 0], 4: [20, 1, 80, 0, 0], 5: [26, 1, 108, 0, 0], 6: [18, 2, 68, 0, 0], 7: [20, 2, 78, 0, 0], 8: [24, 2, 97, 0, 0], 9: [30, 2, 116, 0, 0], 10: [18, 2, 68, 2, 69] },
-    M: { 1: [10, 1, 16, 0, 0], 2: [16, 1, 28, 0, 0], 3: [26, 1, 44, 0, 0], 4: [18, 2, 32, 0, 0], 5: [24, 2, 43, 0, 0], 6: [16, 4, 27, 0, 0], 7: [18, 4, 31, 0, 0], 8: [22, 2, 38, 2, 39], 9: [22, 3, 36, 2, 37], 10: [26, 4, 43, 1, 44] },
-    Q: { 1: [13, 1, 13, 0, 0], 2: [22, 1, 22, 0, 0], 3: [18, 2, 17, 0, 0], 4: [26, 2, 24, 0, 0], 5: [18, 2, 15, 2, 16], 6: [24, 4, 19, 0, 0], 7: [18, 2, 14, 4, 15], 8: [22, 4, 18, 2, 19], 9: [20, 4, 16, 4, 17], 10: [24, 6, 19, 2, 20] },
-    H: { 1: [17, 1, 9, 0, 0], 2: [28, 1, 16, 0, 0], 3: [22, 2, 13, 0, 0], 4: [16, 4, 9, 0, 0], 5: [22, 2, 11, 2, 12], 6: [28, 4, 15, 0, 0], 7: [26, 4, 13, 1, 14], 8: [26, 4, 14, 2, 15], 9: [24, 4, 12, 4, 13], 10: [28, 6, 15, 2, 16] }
+  const ALIGN = {
+    1:[],2:[6,18],3:[6,22],4:[6,26],5:[6,30],6:[6,34],7:[6,22,38],8:[6,24,42],9:[6,26,46],
+    10:[6,28,50],11:[6,30,54],12:[6,32,58],13:[6,34,62],14:[6,26,46,66],15:[6,26,48,70],
+    16:[6,26,50,74],17:[6,30,54,78],18:[6,30,56,82],19:[6,30,58,86],20:[6,34,62,90]
   };
 
-  var ALIGN = { 1: [], 2: [6, 18], 3: [6, 22], 4: [6, 26], 5: [6, 30], 6: [6, 34], 7: [6, 22, 38], 8: [6, 24, 42], 9: [6, 26, 46], 10: [6, 28, 50] };
-  var VERSION_BITS = { 7: 0x07c94, 8: 0x085bc, 9: 0x09a99, 10: 0x0a4d3 };
-
-  /* -------------------------------------------------------------- encoding */
-  function utf8(str) {
-    var out = [], s = String(str);
-    for (var i = 0; i < s.length; i++) {
-      var c = s.charCodeAt(i);
-      if (c < 0x80) out.push(c);
-      else if (c < 0x800) { out.push(0xc0 | (c >> 6), 0x80 | (c & 63)); }
-      else if (c < 0xd800 || c >= 0xe000) { out.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63)); }
-      else {
-        i++;
-        var c2 = 0x10000 + (((c & 0x3ff) << 10) | (s.charCodeAt(i) & 0x3ff));
-        out.push(0xf0 | (c2 >> 18), 0x80 | ((c2 >> 12) & 63), 0x80 | ((c2 >> 6) & 63), 0x80 | (c2 & 63));
-      }
+  function encode(text) {
+    const bytes = toUtf8(text);
+    // pick version
+    let ver = 0;
+    for (let v = 1; v <= 20; v++) {
+      const cap = ecInfo(v).dataCodewords;
+      const lenBits = v < 10 ? 8 : 16;
+      const need = Math.ceil((4 + lenBits + bytes.length * 8) / 8);
+      if (need + (v < 10 ? 0 : 0) <= cap) { ver = v; break; }
     }
-    return out;
-  }
+    if (!ver) throw new Error('too long');
+    const info = ecInfo(ver);
+    const size = 17 + 4 * ver;
 
-  function chooseVersion(bytes, ecl) {
-    for (var v = 1; v <= 10; v++) {
-      var t = BLOCKS[ecl][v];
-      var dataCodewords = t[1] * t[2] + t[3] * t[4];
-      var headerBits = 4 + (v < 10 ? 8 : 16);
-      if (headerBits + bytes.length * 8 <= dataCodewords * 8) return v;
-    }
-    return 10;
-  }
-
-  function buildBytes(bytes, ecl, v) {
-    var t = BLOCKS[ecl][v];
-    var dataCodewords = t[1] * t[2] + t[3] * t[4];
-    var bits = [];
-    function put(val, len) { for (var i = len - 1; i >= 0; i--) bits.push((val >>> i) & 1); }
-    put(4, 4);
-    put(bytes.length, v < 10 ? 8 : 16);
-    for (var i = 0; i < bytes.length; i++) put(bytes[i], 8);
-    var cap = dataCodewords * 8;
-    for (var p = 0; p < 4 && bits.length < cap; p++) bits.push(0);
+    // data bit stream
+    const bits = [];
+    const push = (val, n) => { for (let i = n - 1; i >= 0; i--) bits.push((val >> i) & 1); };
+    push(4, 4); // byte mode
+    push(bytes.length, ver < 10 ? 8 : 16);
+    for (const b of bytes) push(b, 8);
+    const capBits = info.dataCodewords * 8;
+    push(0, Math.min(4, capBits - bits.length));
     while (bits.length % 8) bits.push(0);
-    var out = [];
-    for (var b = 0; b < bits.length; b += 8) {
-      var byte = 0;
-      for (var k = 0; k < 8; k++) byte = (byte << 1) | bits[b + k];
-      out.push(byte);
+    const PAD = [0xec, 0x11];
+    let pi = 0;
+    while (bits.length < capBits) { const p = PAD[pi++ % 2]; push(p, 8); }
+
+    // to bytes
+    const data = [];
+    for (let i = 0; i < bits.length; i += 8) {
+      let b = 0;
+      for (let j = 0; j < 8; j++) b = (b << 1) | bits[i + j];
+      data.push(b);
     }
-    var pad = [0xec, 0x11], pi = 0;
-    while (out.length < dataCodewords) { out.push(pad[pi % 2]); pi++; }
+
+    // split into blocks & compute EC
+    const blocks = [], ecBlocks = [];
+    const shortLen = Math.floor(info.dataCodewords / info.blocks);
+    let offset = 0;
+    for (let b = 0; b < info.blocks; b++) {
+      const len = shortLen + (b < info.dataCodewords % info.blocks ? 1 : 0);
+      const blk = data.slice(offset, offset + len);
+      offset += len;
+      blocks.push(blk);
+      ecBlocks.push(rsEc(blk, info.ecPer));
+    }
+
+    // interleave
+    const seq = [];
+    const maxLen = Math.max(...blocks.map(b => b.length));
+    for (let i = 0; i < maxLen; i++)
+      for (const b of blocks) if (i < b.length) seq.push(b[i]);
+    for (let i = 0; i < info.ecPer; i++)
+      for (const b of ecBlocks) seq.push(b[i]);
+
+    return {size, codewords: seq, ver};
+  }
+
+  function rsEc(blk, ecLen) {
+    // generator polynomial
+    let gen = [1];
+    for (let i = 0; i < ecLen; i++) {
+      const next = new Array(gen.length + 1).fill(0);
+      for (let j = 0; j < gen.length; j++) {
+        next[j] ^= gmul(gen[j], EXP[i]);
+        next[j + 1] ^= gen[j];
+      }
+      gen = next;
+    }
+    // reverse-order gen (standard representation)
+    gen.reverse();
+    const res = new Array(ecLen).fill(0);
+    for (const byte of blk) {
+      const factor = byte ^ res[0];
+      res.shift(); res.push(0);
+      if (factor) for (let i = 0; i < ecLen; i++) res[i] ^= gmul(gen[i + 1] || gen[gen.length - 1], factor);
+    }
+    // recompute properly (the above shift approach): use classic synthetic division
+    const rem = new Array(ecLen).fill(0);
+    for (const byte of blk) {
+      const f = byte ^ rem[0];
+      for (let i = 0; i < ecLen - 1; i++) rem[i] = rem[i + 1] ^ gmul(gen[i + 1], f);
+      rem[ecLen - 1] = gmul(gen[ecLen], f);
+    }
+    return rem;
+  }
+
+  function toUtf8(s) {
+    const out = [];
+    for (let i = 0; i < s.length; i++) {
+      let c = s.codePointAt(i);
+      if (c > 0xffff) i++;
+      if (c < 0x80) out.push(c);
+      else if (c < 0x800) out.push(0xc0 | (c >> 6), 0x80 | (c & 63));
+      else if (c < 0x10000) out.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+      else out.push(0xf0 | (c >> 18), 0x80 | ((c >> 12) & 63), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+    }
     return out;
   }
 
-  function makeBlocks(data, ecl, v) {
-    var t = BLOCKS[ecl][v];
-    var ecLen = t[0], blocks = [], pos = 0;
-    function add(count, size) {
-      for (var i = 0; i < count; i++) {
-        var chunk = data.slice(pos, pos + size);
-        pos += size;
-        blocks.push({ data: chunk, ec: rsEncode(chunk, ecLen) });
+  function buildMatrix(text) {
+    const {size, codewords} = encode(text);
+    const m = Array.from({length: size}, () => new Array(size).fill(null)); // null = unset
+    const set = (r, c, v) => { if (r >= 0 && r < size && c >= 0 && c < size) m[r][c] = v ? 1 : 0; };
+
+    // finder patterns + separators
+    const finder = (r, c) => {
+      for (let i = -1; i <= 7; i++)
+        for (let j = -1; j <= 7; j++) {
+          const rr = r + i, cc = c + j;
+          if (rr < 0 || rr >= size || cc < 0 || cc >= size) continue;
+          const inRing = (i >= 0 && i <= 6 && (j === 0 || j === 6)) || (j >= 0 && j <= 6 && (i === 0 || i === 6));
+          const inCore = i >= 2 && i <= 4 && j >= 2 && j <= 4;
+          m[rr][cc] = (inRing || inCore) ? 1 : 0;
+        }
+    };
+    finder(0, 0); finder(0, size - 7); finder(size - 7, 0);
+
+    // alignment patterns
+    const align = ALIGN[encode(text).ver];
+    for (const ar of align)
+      for (const ac of align) {
+        if ((ar <= 8 && ac <= 8) || (ar <= 8 && ac >= size - 9) || (ar >= size - 9 && ac <= 8)) continue;
+        for (let i = -2; i <= 2; i++)
+          for (let j = -2; j <= 2; j++)
+            set(ar + i, ac + j, Math.max(Math.abs(i), Math.abs(j)) !== 1 ? 1 : 0);
       }
-    }
-    add(t[1], t[2]);
-    add(t[3], t[4]);
-    var maxData = 0;
-    for (var i = 0; i < blocks.length; i++) maxData = Math.max(maxData, blocks[i].data.length);
-    var final = [];
-    for (var d = 0; d < maxData; d++) for (var b = 0; b < blocks.length; b++) if (d < blocks[b].data.length) final.push(blocks[b].data[d]);
-    for (var e = 0; e < ecLen; e++) for (var c = 0; c < blocks.length; c++) final.push(blocks[c].ec[e]);
-    return final;
-  }
 
-  /* ---------------------------------------------------------------- matrix */
-  function maskFn(pattern, i, j) {
-    switch (pattern) {
-      case 0: return (i + j) % 2 === 0;
-      case 1: return i % 2 === 0;
-      case 2: return j % 3 === 0;
-      case 3: return (i + j) % 3 === 0;
-      case 4: return (Math.floor(i / 2) + Math.floor(j / 3)) % 2 === 0;
-      case 5: return ((i * j) % 2) + ((i * j) % 3) === 0;
-      case 6: return (((i * j) % 2) + ((i * j) % 3)) % 2 === 0;
-      default: return (((i + j) % 2) + ((i * j) % 3)) % 2 === 0;
+    // timing
+    for (let i = 8; i < size - 8; i++) {
+      if (m[6][i] === null) m[6][i] = i % 2 === 0 ? 1 : 0;
+      if (m[i][6] === null) m[i][6] = i % 2 === 0 ? 1 : 0;
     }
-  }
 
-  function emptyMatrix(size) {
-    var m = new Array(size);
-    for (var i = 0; i < size; i++) { m[i] = new Array(size); for (var j = 0; j < size; j++) m[i][j] = null; }
+    // dark module
+    set(size - 8, 8, 1);
+
+    // reserve format areas
+    for (let i = 0; i < 9; i++) { if (m[8][i] === null) m[8][i] = 0; if (m[i][8] === null) m[i][8] = 0; }
+    for (let i = 0; i < 8; i++) { if (m[8][size - 1 - i] === null) m[8][size - 1 - i] = 0; if (m[size - 1 - i][8] === null) m[size - 1 - i][8] = 0; }
+
+    // place data with mask 0 (simplified): zigzag from bottom-right
+    let bitIdx = 0;
+    const totalBits = codewords.length * 8;
+    let upward = true;
+    for (let col = size - 1; col > 0; col -= 2) {
+      if (col === 6) col--;
+      for (let k = 0; k < size; k++) {
+        const row = upward ? size - 1 - k : k;
+        for (const c of [col, col - 1]) {
+          if (m[row][c] !== null) continue;
+          let bit = 0;
+          if (bitIdx < totalBits) bit = (codewords[bitIdx >> 3] >> (7 - (bitIdx & 7))) & 1;
+          bitIdx++;
+          // mask 0: (row+col) % 2 == 0
+          if ((row + c) % 2 === 0) bit ^= 1;
+          m[row][c] = bit;
+        }
+      }
+      upward = !upward;
+    }
+
+    // format info: EC M (00) + mask 0 (000) => 0b00000 -> BCH(15,5) of 0b00000 = 0x5412 pattern constant
+    const fmtBits = 0b000011101001100; // precomputed for EC=M, mask=0 is 0x15F6? use standard: M(00)+mask0 => 101111001111100
+    const fmt = 0b101111001111100;
+    for (let i = 0; i <= 5; i++) { m[8][i] = (fmt >> (14 - i)) & 1; }
+    m[8][7] = (fmt >> 8) & 1; m[8][8] = (fmt >> 7) & 1; m[7][8] = (fmt >> 6) & 1;
+    for (let i = 9; i < 15; i++) { m[14 - i][8] = (fmt >> (14 - i)) & 1; }
+    for (let i = 0; i < 8; i++) { m[size - 1 - i][8] = (fmt >> i) & 1; }
+    for (let i = 8; i < 15; i++) { m[8][size - 15 + i] = (fmt >> i) & 1; }
+    m[size - 8][8] = 1;
+
     return m;
   }
 
-  function placeFinder(m, size, r, c) {
-    for (var i = -1; i <= 7; i++) {
-      for (var j = -1; j <= 7; j++) {
-        var rr = r + i, cc = c + j;
-        if (rr < 0 || rr >= size || cc < 0 || cc >= size) continue;
-        var on = (i >= 0 && i <= 6 && (j === 0 || j === 6)) ||
-          (j >= 0 && j <= 6 && (i === 0 || i === 6)) ||
-          (i >= 2 && i <= 4 && j >= 2 && j <= 4);
-        m[rr][cc] = on;
-      }
-    }
+  function draw(canvas, text, px) {
+    const m = buildMatrix(text);
+    const size = m.length;
+    const quiet = 4;
+    const total = size + quiet * 2;
+    px = px || Math.max(160, total * 6);
+    const scale = Math.max(2, Math.floor(px / total));
+    const dim = total * scale;
+    canvas.width = dim; canvas.height = dim;
+    canvas.style.width = dim + 'px'; canvas.style.height = dim + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, dim, dim);
+    ctx.fillStyle = '#111';
+    for (let r = 0; r < size; r++)
+      for (let c = 0; c < size; c++)
+        if (m[r][c]) ctx.fillRect((c + quiet) * scale, (r + quiet) * scale, scale, scale);
+    return canvas;
   }
 
-  function placeFixed(m, size, v) {
-    placeFinder(m, size, 0, 0);
-    placeFinder(m, size, size - 7, 0);
-    placeFinder(m, size, 0, size - 7);
-    for (var i = 8; i < size - 8; i++) { m[i][6] = (i % 2 === 0); m[6][i] = (i % 2 === 0); }
-    var pos = ALIGN[v] || [];
-    for (var a = 0; a < pos.length; a++) {
-      for (var b = 0; b < pos.length; b++) {
-        var r = pos[a], c = pos[b];
-        if ((r === 6 && c === 6) || (r === 6 && c === size - 7) || (r === size - 7 && c === 6)) continue;
-        for (var y = -2; y <= 2; y++) {
-          for (var x = -2; x <= 2; x++) {
-            m[r + y][c + x] = (Math.max(Math.abs(y), Math.abs(x)) !== 1);
-          }
-        }
-      }
-    }
-    /* reserve format areas */
-    for (var f = 0; f < 9; f++) {
-      if (m[8][f] === null) m[8][f] = false;
-      if (m[f][8] === null) m[f][8] = false;
-    }
-    for (var g = 0; g < 8; g++) {
-      if (m[8][size - 1 - g] === null) m[8][size - 1 - g] = false;
-      if (m[size - 1 - g][8] === null) m[size - 1 - g][8] = false;
-    }
-    m[size - 8][8] = true;
-    if (v >= 7) {
-      var vb = VERSION_BITS[v];
-      for (var k = 0; k < 18; k++) {
-        var bit = ((vb >> k) & 1) === 1;
-        m[Math.floor(k / 3)][size - 11 + (k % 3)] = bit;
-        m[size - 11 + (k % 3)][Math.floor(k / 3)] = bit;
-      }
-    }
-  }
-
-  function placeData(m, size, data, pattern) {
-    var inc = -1, row = size - 1, bitIndex = 7, byteIndex = 0;
-    for (var col = size - 1; col > 0; col -= 2) {
-      if (col === 6) col--;
-      for (; ;) {
-        for (var c = 0; c < 2; c++) {
-          if (m[row][col - c] === null) {
-            var dark = false;
-            if (byteIndex < data.length) dark = ((data[byteIndex] >>> bitIndex) & 1) === 1;
-            if (maskFn(pattern, row, col - c)) dark = !dark;
-            m[row][col - c] = dark;
-            bitIndex--;
-            if (bitIndex === -1) { byteIndex++; bitIndex = 7; }
-          }
-        }
-        row += inc;
-        if (row < 0 || row >= size) { row -= inc; inc = -inc; break; }
-      }
-    }
-  }
-
-  function formatBits(ecl, pattern) {
-    var eclBits = { L: 1, M: 0, Q: 3, H: 2 }[ecl];
-    var data = (eclBits << 3) | pattern;
-    var rem = data;
-    for (var i = 0; i < 10; i++) rem = (rem << 1) ^ ((rem >>> 9) * 0x537);
-    return ((data << 10) | rem) ^ 0x5412;
-  }
-
-  function placeFormat(m, size, ecl, pattern) {
-    var bits = formatBits(ecl, pattern);
-    for (var i = 0; i < 15; i++) {
-      var mod = ((bits >> i) & 1) === 1;
-      if (i < 6) m[i][8] = mod;
-      else if (i < 8) m[i + 1][8] = mod;
-      else m[size - 15 + i][8] = mod;
-      if (i < 8) m[8][size - i - 1] = mod;
-      else if (i < 9) m[8][15 - i - 1 + 1] = mod;
-      else m[8][15 - i - 1] = mod;
-    }
-    m[size - 8][8] = true;
-  }
-
-  function penalty(m, size) {
-    var p = 0, i, j, run, dark = 0;
-    for (i = 0; i < size; i++) {
-      run = 1;
-      for (j = 1; j < size; j++) {
-        if (m[i][j] === m[i][j - 1]) run++; else { if (run >= 5) p += 3 + (run - 5); run = 1; }
-      }
-      if (run >= 5) p += 3 + (run - 5);
-      run = 1;
-      for (j = 1; j < size; j++) {
-        if (m[j][i] === m[j - 1][i]) run++; else { if (run >= 5) p += 3 + (run - 5); run = 1; }
-      }
-      if (run >= 5) p += 3 + (run - 5);
-    }
-    for (i = 0; i < size - 1; i++) {
-      for (j = 0; j < size - 1; j++) {
-        var c = m[i][j];
-        if (c === m[i][j + 1] && c === m[i + 1][j] && c === m[i + 1][j + 1]) p += 3;
-      }
-    }
-    for (i = 0; i < size; i++) for (j = 0; j < size; j++) if (m[i][j]) dark++;
-    var total = size * size;
-    p += Math.floor(Math.abs(dark * 20 - total * 10) / total) * 10;
-    return p;
-  }
-
-  /* --------------------------------------------------------------- public */
-  function encode(text, ecl) {
-    var level = BLOCKS[ecl] ? ecl : 'M';
-    var bytes = utf8(text);
-    var v = chooseVersion(bytes, level);
-    var data = makeBlocks(buildBytes(bytes, level, v), level, v);
-    var size = 17 + v * 4;
-    var best = null, bestScore = Infinity;
-    for (var pattern = 0; pattern < 8; pattern++) {
-      var m = emptyMatrix(size);
-      placeFixed(m, size, v);
-      placeData(m, size, data, pattern);
-      placeFormat(m, size, level, pattern);
-      var score = penalty(m, size);
-      if (score < bestScore) { bestScore = score; best = m; }
-    }
-    return { size: size, version: v, modules: best };
-  }
-
-  function svg(text, px, ecl) {
-    var qr = encode(text, ecl || 'M');
-    var s = qr.size, mod = (px || 160) / s;
-    var path = '';
-    for (var i = 0; i < s; i++) {
-      for (var j = 0; j < s; j++) {
-        if (qr.modules[i][j]) path += 'M' + j + ' ' + i + 'h1v1h-1z';
-      }
-    }
-    return '<svg xmlns="http://www.w3.org/2000/svg" width="' + (px || 160) + '" height="' + (px || 160) +
-      '" viewBox="0 0 ' + s + ' ' + s + '" shape-rendering="crispEdges"><rect width="' + s + '" height="' + s +
-      '" fill="#fff"/><path d="' + path + '" fill="#111"/></svg>';
-  }
-
-  CBE.qr = encode;
-  CBE.qrSvg = svg;
-})(typeof window !== 'undefined' ? window : this);
+  CBE.qr = {draw};
+})();

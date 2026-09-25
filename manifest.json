@@ -1,17 +1,14 @@
 {
   "name": "CBE Mobile Banking",
-  "short_name": "CBE Mobile",
-  "description": "Commercial Bank of Ethiopia mobile banking, rebuilt offline as a responsive web app.",
-  "start_url": "index.html",
+  "short_name": "CBE",
+  "description": "Commercial Bank of Ethiopia mobile banking replica — fully offline",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#ffffff",
-  "theme_color": "#5d1793",
-  "lang": "en",
-  "categories": ["finance", "business"],
+  "background_color": "#17151a",
+  "theme_color": "#31144f",
   "icons": [
-    { "src": "img/cbe-logo.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "img/cbe-logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "img/appicon.jpg", "sizes": "409x409", "type": "image/jpeg", "purpose": "any maskable" }
   ]
 }
