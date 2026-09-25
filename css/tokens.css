@@ -1,39 +1,90 @@
-/* CBE Mobile Banking — design tokens (sampled from ui/ reference) */
+/* =========================================================================
+   CBE Mobile Banking — design tokens
+   Values measured from the native 720x1600 (=> 360x800 CSS px) reference
+   screenshots in ui/ and from the crisp receipt exports.
+   ========================================================================= */
 :root {
-  --purple-900: #1c0b30;
-  --purple-800: #28103f;
-  --purple-700: #31144f;
-  --purple-600: #3b1a5e;
-  --purple-500: #4a2377;
-  --purple: #6d28a8;
-  --purple-400: #7d3bbd;
-  --purple-300: #a56bd6;
-  --purple-100: #ede4f7;
-  --purple-50: #f5effb;
+  /* brand ------------------------------------------------------------- */
+  --purple:        #7a1fa2;   /* app bars, primary buttons   (sampled) */
+  --purple-700:    #6a1a8d;
+  --purple-800:    #5a1478;
+  --purple-900:    #3f0f56;
+  --purple-600:    #8b2cb5;
+  --purple-300:    #b98ad4;
+  --purple-100:    #ede0f6;
+  --purple-50:     #f5edfa;
+  --purple-receipt:#83257b;   /* statement receipt header band */
+  --magenta:       #a21ca0;   /* gradient partner */
 
-  --gold: #d9a441;
-  --gold-deep: #b07d24;
+  --grad-brand: linear-gradient(118deg, #a21ca0 0%, #7a1fa2 45%, #5a1d96 100%);
+  --grad-header: linear-gradient(160deg, #8a24b4 0%, #7a1fa2 55%, #6b1a92 100%);
 
-  --ink: #1e2229;
-  --ink-2: #4a4f5a;
-  --ink-3: #878d99;
-  --line: #e8e6ee;
-  --paper: #f4f4f8;
-  --card: #ffffff;
+  --gold:          #d9a441;   /* balance-card wordmark / gold icons */
+  --gold-deep:     #b6832a;
+  --gold-cream:    #f4e8c9;   /* active nav pill */
+  --handle:        #e39b2d;   /* sheet drag handle */
 
-  --green: #1e9e6a;
-  --green-bg: #e4f5ec;
-  --red: #d3382e;
-  --red-bg: #fdeae8;
-  --amber: #d98a2b;
+  /* neutrals ---------------------------------------------------------- */
+  --ink:           #1c1c1c;
+  --ink-2:         #3d3d46;
+  --ink-3:         #61616d;
+  --muted:         #8b8b95;
+  --muted-2:       #a6a6b0;
+  --line:          #e6e4ec;
+  --line-2:        #efedf3;
+  --bg:            #f4f5f7;   /* page background */
+  --bg-2:          #f2f3f5;
+  --surface:       #ffffff;
+  --tile:          #ececed;   /* grey service tiles */
+  --tile-dark:     #e6e6e8;
+  --chip:          #efeff1;   /* receipt summary card */
+  --hero-dark:     linear-gradient(150deg, #262030 0%, #191520 100%);
 
-  --r-lg: 22px;
-  --r-md: 16px;
-  --r-sm: 12px;
+  /* status ------------------------------------------------------------ */
+  --green:         #1e9e5a;
+  --green-strong:  #12a150;
+  --green-bg:      #e3f6e9;
+  --red:           #e0342b;
+  --red-strong:    #d92d20;
+  --red-bg:        #fdeceb;
+  --blue:          #1f7ae0;
 
-  --shadow-1: 0 1px 2px rgba(28, 11, 48, 0.06), 0 4px 14px rgba(28, 11, 48, 0.06);
-  --shadow-2: 0 8px 30px rgba(28, 11, 48, 0.18);
+  /* typography -------------------------------------------------------- */
+  --font: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Times New Roman", Times, Georgia, serif;
+  --font-mono: "Consolas", "Roboto Mono", monospace;
+
+  --fs-appbar: 18px;
+  --fs-title: 17px;
+  --fs-body: 16px;
+  --fs-row: 16px;
+  --fs-sub: 13px;
+  --fs-tile: 15.5px;
+  --fs-cap: 11.5px;
+  --fs-section: 12px;
+
+  /* geometry ---------------------------------------------------------- */
+  --appbar-h: 56px;
+  --nav-h: 64px;
+  --pad: 16px;
+  --r-sheet: 22px;
+  --r-card: 16px;
+  --r-tile: 18px;
+  --r-field: 14px;
+  --r-pill: 999px;
+
+  --shadow-card: 0 1px 2px rgba(28, 16, 48, .05), 0 4px 12px rgba(28, 16, 48, .05);
+  --shadow-tile: 0 1px 2px rgba(28, 16, 48, .045), 0 2px 8px rgba(28, 16, 48, .045);
+  --shadow-hero: 0 12px 30px rgba(10, 4, 24, .38);
+  --shadow-sheet: 0 -8px 30px rgba(20, 8, 40, .18);
 
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
+}
+
+/* Receipt document scale: the exported reference is 720x1600 native,
+   i.e. 360x800 CSS px — everything inside a receipt is measured from it. */
+:root {
+  --receipt-w: 280px;      /* statement paper width  (560 native / 2) */
+  --receipt-purple: #83257b;
 }

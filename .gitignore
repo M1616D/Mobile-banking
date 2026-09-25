@@ -7,6 +7,13 @@ _rv/
 _chk/
 _ref/
 
+# scratch workspace used while matching the design (reference crops, probes)
+.work/
+
+# the design reference folder is kept locally only: it is large and the app
+# already ships every asset it needs under img/
+ui/
+
 # OS noise
 Thumbs.db
 .DS_Store

@@ -1,79 +1,106 @@
-/* CBE Mobile Banking — screen protection (honest browser-level guard).
-   A web page cannot fully block OS screenshots, but we:
-   - blur the whole screen whenever the page loses focus / visibility (hides app-switcher preview too)
-   - swallow PrintScreen / Win+Shift+S style shortcuts, Ctrl+P, Ctrl+S
-   - clear the clipboard after PrintScreen keypress
-   - block context menu, drag and text selection on guarded screens */
-(function () {
-  let armed = false;
+/* =========================================================================
+   guard.js — screen-capture deterrent for the sensitive / receipt screens.
 
-  function onKey(e) {
-    const k = (e.key || '').toLowerCase();
-    if (k === 'printscreen' || k === 'snapshot') {
-      obscureBurst();
-      try { navigator.clipboard.writeText(' '); } catch (err) {}
-      e.preventDefault();
-      return;
-    }
-    if ((e.metaKey || e.ctrlKey) && (k === 'p' || k === 's')) {
-      e.preventDefault();
-      obscureBurst();
-      return;
-    }
-    if (e.metaKey && e.shiftKey && (k === 's' || k === '3' || k === '4' || k === '5')) {
-      obscureBurst();
-      e.preventDefault();
-    }
+   A browser cannot forbid the operating-system screenshot key, so this does
+   what a banking web client can: it refuses every in-page capture route
+   (print, devtools copy, context menu, drag-out, select-all), and the moment
+   a capture attempt is seen — PrintScreen, Cmd+Shift+3/4/5, Ctrl+P — or the
+   app loses the foreground while a secure screen is open, the content is
+   veiled instantly and a "screen capture is disabled" notice is shown.
+   ========================================================================= */
+(function (global) {
+  "use strict";
+
+  var secure = false;
+  var veiled = false;
+  var veil = null;
+  var timer = null;
+
+  function veilEl() {
+    if (!veil) veil = document.getElementById("secure-veil");
+    return veil;
   }
 
-  function obscureBurst() {
-    document.body.classList.add('is-obscured');
-    setTimeout(() => {
-      if (!document.hidden && document.hasFocus()) document.body.classList.remove('is-obscured');
-    }, 1500);
+  function showVeil(hold) {
+    if (!secure) return;
+    var v = veilEl();
+    if (!v) return;
+    veiled = true;
+    v.classList.add("is-on");
+    clearTimeout(timer);
+    if (hold) timer = setTimeout(hideVeil, 1800);
+    if (U.haptic) U.haptic(24);
   }
 
-  function onBlur() {
-    if (armed) document.body.classList.add('is-obscured');
+  function hideVeil() {
+    var v = veilEl();
+    veiled = false;
+    if (v) v.classList.remove("is-on");
   }
-  function onFocus() {
-    if (!document.hidden) document.body.classList.remove('is-obscured');
+
+  function block(e) {
+    if (!secure) return;
+    if (e.preventDefault) e.preventDefault();
+    e.stopPropagation();
+    return false;
   }
-  function onVis() {
-    if (armed && (document.hidden || !document.hasFocus())) document.body.classList.add('is-obscured');
-    else document.body.classList.remove('is-obscured');
-  }
-  function onCtx(e) {
-    if (armed) e.preventDefault();
-  }
-  function onDrag(e) {
-    if (armed) e.preventDefault();
-  }
-  function onCopy(e) {
-    if (armed) {
-      e.clipboardData.setData('text/plain', ' ');
-      e.preventDefault();
+
+  function onKeyDown(e) {
+    if (!secure) return;
+    var k = e.key || "";
+    var meta = e.ctrlKey || e.metaKey;
+    // PrintScreen (Windows/Linux) and the macOS screenshot chords
+    if (k === "PrintScreen" || e.code === "PrintScreen" ||
+      e.keyCode === 44 ||
+      (meta && e.shiftKey && (k === "3" || k === "4" || k === "5" || k === "S" || k === "s")) ||
+      (meta && (k === "p" || k === "P" || k === "s" || k === "S")) ||
+      e.key === "F12" ||
+      (meta && e.shiftKey && (k === "I" || k === "i" || k === "C" || k === "c" || k === "J" || k === "j"))) {
+      showVeil(true);
+      return block(e);
     }
   }
 
-  CBE.guard = {
-    boot() {
-      window.addEventListener('blur', onBlur);
-      window.addEventListener('focus', onFocus);
-      document.addEventListener('visibilitychange', onVis);
-      window.addEventListener('focus', onVis);
-      document.addEventListener('keydown', onKey, true);
-      document.addEventListener('contextmenu', onCtx);
-      document.addEventListener('dragstart', onDrag);
-      document.addEventListener('copy', onCopy);
-      document.addEventListener('cut', onCopy);
+  function init() {
+    document.addEventListener("contextmenu", function (e) {
+      if (secure || e.target.closest(".receipt, .stmt-paper, .secure")) return block(e);
+    }, true);
+    document.addEventListener("dragstart", function (e) {
+      if (secure || e.target.closest("img, .receipt")) return block(e);
+    }, true);
+    document.addEventListener("selectstart", function (e) {
+      if (secure && !e.target.closest("input, textarea")) return block(e);
+    }, true);
+    document.addEventListener("copy", function (e) { if (secure) block(e); }, true);
+    document.addEventListener("cut", function (e) { if (secure) block(e); }, true);
+    document.addEventListener("keydown", onKeyDown, true);
+    document.addEventListener("keyup", function (e) {
+      if (!secure) return;
+      if (e.key === "PrintScreen" || e.code === "PrintScreen" || e.keyCode === 44) showVeil(true);
+    }, true);
+    global.addEventListener("beforeprint", function () { if (secure) showVeil(true); });
+    global.addEventListener("blur", function () { if (secure) showVeil(false); });
+    document.addEventListener("visibilitychange", function () {
+      if (!secure) return;
+      if (document.hidden) showVeil(false);
+      else setTimeout(function () { if (!veiled) hideVeil(); }, 40);
+    });
+    // re-hide on tap while the veil is up
+    document.addEventListener("click", function () { if (veiled) hideVeil(); }, true);
+  }
+
+  var Guard = {
+    init: init,
+    secure: function (on) {
+      secure = !!on;
+      var phone = document.getElementById("phone");
+      if (phone) phone.classList.toggle("is-secure", secure);
+      if (!secure) hideVeil();
     },
-    refresh() {
-      const scr = document.querySelector('#screen .page');
-      armed = !!(scr && scr.classList.contains('is-guarded'));
-      if (!armed) document.body.classList.remove('is-obscured');
-      else onVis();
-    },
-    obscure() { obscureBurst(); }
+    isSecure: function () { return secure; },
+    /* let callers know a capture attempt happened (used by the receipt screen) */
+    onAttempt: null
   };
-})();
+
+  global.Guard = Guard;
+})(window);

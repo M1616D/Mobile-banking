@@ -1,69 +1,65 @@
 # CBE Mobile Banking
 
-A pixel-faithful, fully offline replica of the CBE Mobile Banking app, built as a
-plain web app (no framework, no build step, no network calls).
+A from-scratch, offline-capable replica of the Commercial Bank of Ethiopia
+mobile-banking app: the same screens, spacing, typography and brand assets as
+the design reference, with the money maths actually working.
 
-## Run it
-
-Open `index.html` directly, or serve the folder:
-
-```bash
-python -m http.server 8000
-# then open http://127.0.0.1:8000/index.html
-```
-
-Add `?dev=1` to the URL to skip service-worker registration while developing.
-
-## Layout
+No build step, no framework, no network calls. Open `index.html` and it runs.
 
 ```
-index.html          the shell (screen layer, overlay layer, toast layer)
-css/
-  tokens.css        colours, spacing, radii, shadows, type
-  layout.css        app shell, layers, appbar, tab bar
-  components.css    buttons, fields, sheets, rows, switches, keypads
-  screens.css       one block per screen, matching ui/ reference shots
-js/
-  core/
-    util.js         template tag, formatters, money/date helpers
-    icons.js        inline SVG icon set
-    brands.js       bank and wallet brand marks
-    qr.js           self-contained QR encoder (byte mode, ECC L–H)
-    overlay.js      sheet / modal / toast stack
-    store.js        state, seeded data, service-charge and tax maths
-    guard.js        screen protection for the private and receipt layers
-    router.js       screen registry, mounting, history, swipe
-  screens/
-    auth.js         splash, sign-in (biometrics first), PIN, Verify Identity
-    home.js         home, transactions, accounts, statements
-    transfer.js     CBE Transfer, Other Transfers, bank list, confirm sheet
-    receipt.js      Thank-you receipt, downloaded receipt, full customer receipt
-    services.js     airtime, bills, wallets, cards, loans, QR, support
-    settings.js     settings, subpages, receipts list
-    misc.js         remaining surfaces
-  app.js            the single action table every button is wired through
-img/                logo, fingerprint marks, bank stamp, brand logos
-ui/                 the reference screenshots the UI was built against
+python3 -m http.server 8000     # then browse to http://localhost:8000/
 ```
 
-## Notes
+## What is in here
 
-- **Sign-in** always starts at the logo loading screen, then the fingerprint
-  prompt, with PIN as the fallback — matching the reference app.
-- **Service charge, VAT and disaster-recovery** figures are computed, not
-  hard-coded: the charge comes from settings, VAT and DRF are percentages of it,
-  and a transfer debits exactly `amount + service + vat + drf`. A debit of
-  886.00 prints a 0.50 service charge, 0.08 VAT, 0.03 DRF and an 886.61 total,
-  and the balance falls by exactly 886.61.
-- **Offline**: `sw.js` precaches the shell so the app opens with no connection.
-- **Screen protection**: receipt surfaces and the private layers are blurred the
-  moment the app leaves the foreground, and the print-screen / Ctrl+P shortcuts,
-  long-press menus and text selection are suppressed on them. A web page cannot
-  stop the operating system itself from capturing the screen; hiding the layer
-  from the app switcher and its thumbnail is the strongest defence available to
-  a browser app. An Android or iOS shell would need platform-level protection
-  (`FLAG_SECURE` / a secure text entry hierarchy) for a hard guarantee.
+| path | what it is |
+| --- | --- |
+| `index.html` | the app shell – everything else is loaded from here |
+| `css/tokens.css` | colours, type scale and geometry measured off the design |
+| `css/base.css` | reset, phone shell, screen stack and transitions |
+| `css/components.css` | app bar, list rows, tiles, fields, sheets, keypads |
+| `css/screens.css` | per-screen layout |
+| `js/core/` | `util`, `icons`, `qr`, `fees`, `store`, `brands`, `guard`, `ui`, `router`, `capture` |
+| `js/screens/` | `auth`, `home`, `transactions`, `transfer`, `receipt`, `receive`, `services`, `settings`, `misc` |
+| `img/` | every runtime asset, extracted from the design folder with clean names |
+| `sw.js` | generated service worker – precaches all 112 assets for offline use |
+| `tools/` | the scripts that regenerate `img/` and `sw.js` |
 
-## Deploy
+## Behaviour worth knowing
 
-The repo is pure static files, so GitHub Pages can serve it straight from `main`.
+**Money.** `js/core/fees.js` owns every figure. The service charge comes from
+the published amount bands, VAT is 15% of it, the Disaster Risk Response Fund
+contribution is 5%, and half-up rounding on integer cents reproduces the
+reference receipt exactly (546.00 + 0.50 + 0.08 + 0.03 = 546.61). Sending money
+debits the total, and the confirmation sheet, the balance and the receipt all
+read from the same object, so they can never disagree.
+
+**Offline.** `sw.js` is cache-first over a hash-named cache, so a new build
+invalidates the old one. On `127.0.0.1`/`localhost` the worker is deliberately
+unregistered so edits are never shadowed by a stale cache.
+
+**Hidden configuration.** Tapping the version string on the Settings screen
+five times in a row opens a panel that edits the account holder name, the main
+account number and balance, and the custom receiver name. There is no label,
+icon or hint anywhere for that gesture. Any 13-digit account number typed on
+the transfer screen is shown as that custom receiver (default
+`Abreham Bekalu`).
+
+**Screen capture.** Sensitive screens (the receipt and the statement) mark
+themselves secure: the shell enters a guarded state that suppresses the context
+menu, dragging and gestures. On the receipt, *Screenshot* copies the receipt
+itself — not the app chrome — into a 720×1600 PNG via `js/core/capture.js`, an
+SVG `foreignObject` rasteriser with the styles and images frozen inline.
+
+**Documents.** The official statement is laid out at 720 units wide and scaled
+into the phone, which is how the reference shows it.
+
+## Regenerating assets
+
+`tools/build-assets.py` expects the design reference folder (`ui/`) next to the
+project; it is kept locally only and is not committed.
+
+```
+python3 tools/build-assets.py    # ui/  -> img/ with clean web-safe names
+python3 tools/build-sw.py        # rewrite sw.js with a fresh cache hash
+```

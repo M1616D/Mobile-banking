@@ -1,126 +1,317 @@
-/* CBE Mobile Banking — splash, login & biometric auth */
+/* =========================================================================
+   auth.js — login (biometric + PIN), My Information
+   ========================================================================= */
 (function () {
-  const U = CBE.util;
+  "use strict";
 
-  CBE.router.on('splash', function () {
-    const el = CBE.ui.el(
-      '<div class="page" data-screen="splash">' +
-      '<div class="splash"><img src="img/cbe-mark.png" alt="CBE"></div>' +
-      '</div>'
-    );
-    setTimeout(() => { if (CBE.router.currentName() === 'splash') CBE.router.replace('login'); }, 1400);
-    return el;
-  });
+  /* CBE NOOR ships as a lock-up (mark + wordmark); the standard identity is
+     the gold coin mark on its own. */
+  function logoAsset() { return Store.get().noor ? "img/brands/noor-logo.png" : "img/cbe-logo.png"; }
 
-  function loginShell(inner, modalHtml) {
-    return CBE.ui.el(
-      '<div class="page" data-screen="login">' +
+  /* ------------------------------------------------------------- login -- */
+  function loginView() {
+    var s = Store.get();
+    var el = UI.h(
       '<div class="login">' +
-      '<div class="topbar">' +
-      '<button class="bell" data-a="noop" style="width:40px;height:40px;display:grid;place-items:center;border-radius:50%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.18)">' + CBE.icon('bell', 20) + '</button>' +
-      '<button class="lang" data-a="langPick">English ' + CBE.icon('down', 14) + '</button>' +
-      '<button class="sq" data-a="otherServices">' + CBE.icon('grid', 20) + '</button>' +
-      '</div>' +
-      '<div class="brand-area">' +
-      '<img class="crest" src="img/cbe-mark.png" alt="CBE">' +
-      '<div class="brand-amh">\u12d5\u1295\u1275\u12cd\u1260\u1295 \u1263\u1295\u12ad \u12a2\u1275\u12ee\u1335\u12eb</div>' +
-      '<div class="brand-en">COMMERCIAL BANK OF ETHIOPIA</div>' +
-      '<div class="brand-rule"></div>' +
-      inner +
-      '</div>' +
-      '<div class="bottom">' +
-      '<button class="bio-btn" data-a="bioLogin"><img src="img/fingerprint.png" alt=""></button>' +
-      '<div class="bio-lb">USE BIOMETRICS</div>' +
-      '<button class="pin-link" data-a="loginPin">Use PIN</button>' +
-      '<div class="foot">\u00a9 Commercial Bank of Ethiopia</div>' +
-      '</div>' +
-      (modalHtml || '') +
-      '</div>' +
-      '</div>'
-    );
+        '<div class="login__top">' +
+          '<button class="iconbtn" data-act="bell" aria-label="Notifications" style="color:#6c6c78">' + Icon("bell", 21) + "</button>" +
+          '<div class="pin-center"><button class="lang-pill" data-act="lang">English ' + Icon("chevronDown", 14) + "</button></div>" +
+          '<button class="iconbtn" data-act="other" aria-label="Other services" style="color:#4a3562">' + Icon("grid", 22) + "</button>" +
+        "</div>" +
+        '<div class="login__body">' +
+          '<div class="login__inner">' +
+            '<img class="login__logo" src="' + logoAsset() + '" alt="Commercial Bank of Ethiopia">' +
+            (s.noor ? "" : '<div class="login__amharic am">የኢትዮጵያ ንግድ ባንክ</div>') +
+            '<div class="login__bank">COMMERCIAL BANK OF ETHIOPIA</div>' +
+            '<div class="login__rule"></div>' +
+            '<div class="login__welcome">Welcome back</div>' +
+            '<div class="login__field" data-slot="field"></div>' +
+          "</div>" +
+          '<div class="login__orb-wrap" data-slot="orb"></div>' +
+          '<div class="login__actions" data-slot="actions"></div>' +
+          '<div class="login__copyright">© Commercial Bank of Ethiopia</div>' +
+        "</div>" +
+        '<div data-slot="keypad"></div>' +
+      "</div>");
+
+    var mode = "bio";        // bio | pin
+    var pinValue = "";
+    var keypadOpen = false;
+    var pad = null;
+    var failNext = false;
+
+    function renderField() {
+      var slot = el.querySelector('[data-slot="field"]');
+      var orb = el.querySelector('[data-slot="orb"]');
+      var actions = el.querySelector('[data-slot="actions"]');
+      var kp = el.querySelector('[data-slot="keypad"]');
+
+      if (mode === "bio") {
+        slot.innerHTML = "";
+        orb.innerHTML =
+          '<button class="login__orb" data-act="bio" aria-label="Use biometrics">' +
+            '<img src="img/fingerprint-light.png" alt=""></button>' +
+          '<div class="login__orb-label">USE BIOMETRICS</div>' +
+          '<button class="login__usebtn" data-act="topin"><u>Use PIN</u></button>';
+        actions.innerHTML = "";
+        kp.innerHTML = "";
+        keypadOpen = false;
+        return;
+      }
+
+      // PIN mode
+      orb.innerHTML = keypadOpen ? "" :
+        '<div class="login__orb-label" style="margin-top:28px">OR</div>' +
+        '<button class="login__orb" data-act="bio" aria-label="Use biometrics" style="margin-top:16px">' +
+          '<img src="img/fingerprint-light.png" alt=""></button>' +
+        '<div class="login__orb-label">USE BIOMETRICS</div>';
+      actions.innerHTML = keypadOpen ? "" :
+        '<button class="btn btn--grad btn--block" data-act="login">Login ' + Icon("arrowRight", 20) + "</button>";
+
+      var err = el._pinError;
+      slot.innerHTML =
+        '<div class="field" style="margin-top:0">' +
+          '<div class="input' + (err ? " is-error" : "") + '" data-slot="pinwrap">' +
+            '<span class="input__icon" style="color:#c98a2a">' + Icon("lock", 20) + "</span>" +
+            '<input data-pininput type="text" inputmode="numeric" autocomplete="off" maxlength="6" ' +
+              'placeholder="PIN" value="' + U.esc(pinValue) + '">' +
+          "</div>" +
+          (err ? '<div class="error-text">' + U.esc(err) + "</div>" : "") +
+        "</div>";
+
+      if (keypadOpen) {
+        kp.innerHTML = '<div class="login__keypad"></div>';
+        pad = UI.pinPad({
+          length: 6,
+          onChange: function (v) { pinValue = v; syncInput(); },
+          onSubmit: function (v) { pinValue = v; submitPin(); },
+          onShort: function () { el._pinError = "This field is required"; renderField(); }
+        });
+        kp.querySelector(".login__keypad").appendChild(pad.dots);
+        kp.querySelector(".login__keypad").appendChild(pad.pad);
+      } else {
+        kp.innerHTML = "";
+      }
+    }
+
+    function syncInput() {
+      var input = el.querySelector("[data-pininput]");
+      if (input && input.value !== pinValue) input.value = pinValue;
+      var wrap = el.querySelector('[data-slot="pinwrap"]');
+      if (wrap && el._pinError) {
+        el._pinError = "";
+        wrap.classList.remove("is-error");
+        var et = el.querySelector(".error-text");
+        if (et) et.remove();
+      }
+      if (pad) {
+        // keep the dots in step with the typed value
+        var dots = pad.dots.querySelectorAll(".dot");
+        dots.forEach(function (d, i) { d.classList.toggle("is-on", i < pinValue.length); });
+      }
+    }
+
+    function openKeypad() {
+      keypadOpen = true;
+      el._pinError = "";
+      renderField();
+      var input = el.querySelector("[data-pininput]");
+      if (input) input.setAttribute("readonly", "readonly");
+    }
+
+    function submitPin() {
+      var pin = pinValue.trim();
+      if (!pin) {
+        el._pinError = "This field is required";
+        renderField();
+        return;
+      }
+      if (pad && pad.value().length < 6) {
+        el._pinError = "PIN must be 6 digits";
+        renderField();
+        return;
+      }
+      if (pin === Store.get().pin) {
+        el._pinError = "";
+        succeed();
+      } else {
+        el._pinError = "Invalid PIN. Please try again.";
+        pinValue = "";
+        renderField();
+      }
+    }
+
+    /* -------------------------------------------------- authentication */
+    function succeed() {
+      var d = UI.dialog({
+        body: '<div class="dialog__circle dialog__circle--green">' + Icon("check", 44) + "</div>" +
+          '<div class="dialog__green">Authenticated!</div>'
+      });
+      U.haptic(30);
+      setTimeout(function () {
+        d.close();
+        enterHome();
+      }, 900);
+    }
+
+    function fail() {
+      var d = UI.dialog({
+        body: '<div class="verify__circle verify__circle--red" style="margin:0 auto 16px">' + Icon("x", 42) + "</div>" +
+          '<div class="verify__fail">Verification Failed</div>' +
+          '<p class="verify__say2">Biometric scan failed. Please try again.</p>' +
+          '<button class="btn btn--block" data-act="retry" style="margin-top:18px">Try Again</button>'
+      });
+      d.node.querySelector('[data-act="retry"]').addEventListener("click", function () {
+        d.close();
+        runBiometric();
+      });
+    }
+
+    function runBiometric() {
+      var refused = failNext || !Store.get().biometric;
+      failNext = false;
+      var d = UI.dialog({
+        body: '<div class="dialog__ring">' +
+            '<svg class="spin" viewBox="0 0 72 72" fill="none">' +
+              '<circle cx="36" cy="36" r="32" stroke="#e23b2e" stroke-width="3.4" stroke-linecap="round" ' +
+                'stroke-dasharray="130 200" transform="rotate(-90 36 36)"/></svg>' +
+            '<span class="dialog__fp">' + Icon.fingerprint(46, "dark") + "</span>" +
+          "</div>" +
+          '<div class="dialog__text">Authenticating…</div>'
+      });
+      U.haptic(14);
+      setTimeout(function () {
+        d.close();
+        if (refused) fail(); else succeed();
+      }, 1500);
+    }
+
+    function enterHome() {
+      Store.set({ lastSignIn: new Date().toISOString() }, true);
+      Router.root("home");
+    }
+
+    /* ---------------------------------------------------------- events */
+    el.addEventListener("click", function (e) {
+      var t = e.target.closest("[data-act]");
+      if (!t) {
+        // tapping the PIN field opens the keypad, like the reference
+        if (e.target.closest("[data-pininput]") && mode === "pin" && !keypadOpen) openKeypad();
+        return;
+      }
+      var act = t.dataset.act;
+      if (act === "bio") { runBiometric(); return; }
+      if (act === "topin") { mode = "pin"; pinValue = ""; keypadOpen = false; el._pinError = ""; renderField(); return; }
+      if (act === "login") { mode = "pin"; renderField(); openKeypad(); return; }
+      if (act === "bell") { UI.toast("No new notifications"); return; }
+      if (act === "other") { Router.push("otherServices"); return; }
+      if (act === "lang") {
+        UI.selectSheet("Select Language", ["አማርኛ", "English"], function (v) {
+          Store.set({ language: v === "English" ? "en" : "am" });
+          UI.toast(v + " selected");
+        });
+        return;
+      }
+    });
+
+    el.addEventListener("input", function (e) {
+      if (e.target.matches("[data-pininput]")) {
+        pinValue = U.digits(e.target.value).slice(0, 6);
+        e.target.value = pinValue;
+        var dots = el.querySelectorAll(".dot");
+        dots.forEach(function (d, i) { d.classList.toggle("is-on", i < pinValue.length); });
+        if (pinValue.length === 6) submitPin();
+      }
+    });
+
+    renderField();
+    return { el: el };
   }
 
-  CBE.router.on('login', function () {
-    return loginShell(
-      '<div class="welcome">Welcome back</div>' +
-      '<div class="num">' + U.esc(CBE.state.holder.name) + '</div>'
-    );
-  });
+  /* ------------------------------------------------- My Information ----- */
+  function myInfoView() {
+    var s = Store.get();
+    var tab = "accounts";
+    var el = UI.h(
+      '<div class="screen">' +
+        UI.appbar({ title: "My Information" }) +
+        '<div class="body"><div class="sheet">' +
+          '<div class="pad" style="padding-top:16px">' +
+            '<div class="group">' +
+              '<div class="mi-head">' +
+                '<span class="avatar avatar--solid">' + Icon("users", 26) + "</span>" +
+                '<span class="grow"><span class="mi-head__name">' + U.esc(s.holderName) + "</span>" +
+                  '<div class="mi-head__sub">Last Sign In: ' + U.esc(U.signIn(s.lastSignIn ? new Date(s.lastSignIn) : new Date())) + "</div></span>" +
+              "</div>" +
+            "</div>" +
+            '<div class="group mt12">' +
+              UI.row({ label: "Contact Us", icon: "idCard", to: "contact" }) +
+              '<div class="rowline" style="cursor:default">' +
+                '<span class="rowline__icon">' + Icon("mosque", 22) + "</span>" +
+                '<span class="rowline__text"><span class="rowline__title">CBE NOOR</span></span>' +
+                UI.toggle(s.noor, 'data-act="noor"') +
+              "</div>" +
+            "</div>" +
+            '<div class="tabs mt20" data-slot="tabs">' +
+              '<button class="tabs__item is-on" data-tab="accounts">My Accounts</button>' +
+              '<button class="tabs__item" data-tab="phone">Phone Number</button>' +
+            "</div>" +
+            '<div class="info-card mt16" data-slot="panel" style="border:1px solid var(--line);box-shadow:none"></div>' +
+          "</div>" +
+          '<div class="logout-wrap"><button class="logout-btn" data-act="logout">Log out</button></div>' +
+        "</div></div>" +
+      "</div>");
 
-  CBE.router.on('loginPin', function () {
-    return loginShell(
-      '<div class="welcome">Welcome back</div>' +
-      '<div class="login-pin-form">' +
-      CBE.ui.field({label: 'PIN', id: 'pinInput', type: 'password', max: 4, inputmode: 'numeric', ph: '\u2022\u2022\u2022\u2022'}) +
-      '<div class="login-err" id="loginErr"></div>' +
-      '<div style="display:flex;justify-content:center;margin-top:10px">' +
-      '<button class="btn" style="width:190px" data-a="loginPinGo">Login</button>' +
-      '</div>' +
-      '</div>'
-    );
-  });
+    function paint() {
+      var panel = el.querySelector('[data-slot="panel"]');
+      var isAcc = tab === "accounts";
+      var payload = isAcc ? U.maskShort(s.accountNumber) : "+251902468625";
+      panel.innerHTML =
+        '<div class="mi-qr" data-qr></div>' +
+        '<div class="mi-qr-caption">' + U.esc(payload) + "</div>" +
+        '<div class="mi-qr-caption" style="padding-top:2px;color:var(--muted)">' +
+          (isAcc ? "Scan this account number." : "Scan this phone number.") + "</div>";
+      var canvas = document.createElement("canvas");
+      canvas.style.width = "150px";
+      canvas.style.height = "150px";
+      panel.querySelector("[data-qr]").appendChild(canvas);
+      QR.draw(canvas, (isAcc ? "CBE|ACCOUNT|" + s.accountNumber : "CBE|PHONE|+251902468625") + "|" + s.holderName, 150, "M", 2);
+    }
+    paint();
 
-  function bioModal(state) {
-    const body =
-      state === 'ok' ? '<div class="fingerprint ok">' + CBE.icon('fingerprint', 54) + '</div>' :
-      state === 'fail' ? '<div class="fingerprint fail" style="color:var(--red)">' + CBE.icon('close', 44) + '</div>' :
-      '<div class="fingerprint">' + CBE.icon('fingerprint', 54) + '</div>';
-    const t1 = state === 'ok' ? 'Authenticated!' : state === 'fail' ? 'Authentication failed' : 'Authenticating...';
-    const t2 = state === 'ok' ? 'Welcome back.' : state === 'fail' ? 'Scan did not match. Try again.' : 'Fingerprint';
-    const extra = state === 'fail'
-      ? '<button class="btn" style="margin-top:14px" data-a="bioLogin">Try Again</button><div style="text-align:center;margin-top:12px"><button class="pin-link" style="color:var(--purple)" data-a="loginPin">Use PIN instead</button></div>'
-      : '';
-    return (
-      '<div class="auth-modal ' + (state || '') + '" id="bioModal">' +
-      body +
-      '<div class="t1">' + t1 + '</div>' +
-      '<div class="t2">' + t2 + '</div>' +
-      extra +
-      (state !== 'fail' ? '<div class="app-line"><img src="img/appicon.jpg" alt="">CBE Mobile Banking</div><div class="sec-by">Secured by Knox</div>' : '') +
-      '</div>'
-    );
+    el.addEventListener("click", function (e) {
+      var noor = e.target.closest('[data-act="noor"]');
+      if (noor) {
+        Store.set({ noor: !Store.get().noor });
+        Router.refresh();
+        UI.toast(Store.get().noor ? "CBE NOOR activated" : "CBE NOOR deactivated");
+        return;
+      }
+      var tb = e.target.closest("[data-tab]");
+      if (tb) {
+        tab = tb.dataset.tab;
+        el.querySelectorAll("[data-tab]").forEach(function (b) { b.classList.toggle("is-on", b === tb); });
+        paint();
+        return;
+      }
+      if (e.target.closest('[data-act="logout"]')) {
+        UI.sheet({
+          title: "Log out?",
+          closeBtn: true,
+          body: '<p class="form-note" style="padding-bottom:16px">You will need to authenticate again to use CBE Mobile Banking.</p>' +
+            '<div class="btn-row"><button class="btn btn--quiet" data-close="1">Cancel</button>' +
+            '<button class="btn btn--danger" data-act="confirm-logout">Log out</button></div>'
+        }).node.addEventListener("click", function (ev) {
+          if (ev.target.closest('[data-act="confirm-logout"]')) {
+            Router.root("login");
+          }
+        });
+      }
+    });
+
+    return { el: el };
   }
 
-  CBE.router.on('bioAuth', function (params) {
-    const stage = params.stage || 'scan';
-    const modal =
-      stage === 'scan' ? bioModal('scan') :
-      stage === 'ok' ? bioModal('ok') :
-      stage === 'fail' ? bioModal('fail') : '';
-    return loginShell(
-      '<div class="welcome">Welcome back</div>' +
-      '<div class="num">' + U.esc(CBE.state.holder.name) + '</div>',
-      modal
-    );
-  });
-
-  CBE.router.on('otherServices', function () {
-    const rows = [
-      ['Exchange Rates', 'percent'], ['Internet Banking', 'globe'], ['USSD', 'sms'],
-      ['Verify Receipt', 'doc'], ['Feedback', 'mail'], ['CBE Locator', 'pin'],
-      ['Call Center', 'phone'], ['Privacy Policy', 'shield'], ['Terms and Tariffs', 'doc'],
-      ['Survey', 'edit'], ['CBE Links', 'link']
-    ];
-    const html = rows.map(([t, ic]) =>
-      '<button class="lang-opt" data-a="soonToast" data-t="' + U.esc(t) + '">' + CBE.icon(ic, 20) + t + '</button>'
-    ).join('');
-    CBE.ui.sheet(
-      '<h3>Other Services</h3>' +
-      '<div style="max-height:52vh;overflow-y:auto">' + html + '</div>'
-    );
-    return null;
-  });
-
-  CBE.router.on('langPick', function () {
-    const langs = [['\u12a0\u121b\u122d\u129b', '\ud83c\udde8\ud83c\uddef'], ['English', '\ud83c\uddfa\ud83c\uddf8']];
-    CBE.ui.sheet(
-      '<h3>Select Language</h3>' +
-      langs.map(([n, f]) =>
-        '<button class="lang-opt" data-a="langSet" data-l="' + n + '"><span class="flag">' + f + '</span> ' + n +
-        (CBE.state.settings.language === n ? '<span class="ck">' + CBE.icon('check', 20) + '</span>' : '') +
-        '</button>'
-      ).join('')
-    );
-    return null;
-  });
+  Router.define("login", loginView);
+  Router.define("myinfo", myInfoView);
 })();

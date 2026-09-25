@@ -1,54 +1,127 @@
-/* CBE Mobile Banking — base */
-* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+/* =========================================================================
+   Base / reset / shell
+   ========================================================================= */
+*, *::before, *::after { box-sizing: border-box; }
 html, body { height: 100%; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  background: #0c0714;
-  color: var(--ink);
-  overflow: hidden;
-  -webkit-font-smoothing: antialiased;
-  user-select: none;
-  -webkit-user-select: none;
-  touch-action: manipulation;
-}
-input, textarea { user-select: text; -webkit-user-select: text; font: inherit; }
-img { -webkit-user-drag: none; user-select: none; }
-button { font: inherit; border: 0; background: none; cursor: pointer; color: inherit; }
+html { -webkit-text-size-adjust: 100%; }
 
-.app {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  justify-content: center;
-  background: #0c0714;
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: var(--fs-body);
+  color: var(--ink);
+  background: #101014;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
-.screen {
+
+body, #phone { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+input, textarea, .selectable, .receipt, .statement { user-select: text; -webkit-user-select: text; }
+
+h1, h2, h3, h4, p { margin: 0; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; padding: 0; }
+input, select, textarea { font: inherit; color: inherit; }
+img { display: block; max-width: 100%; }
+a { color: var(--purple); text-decoration: none; }
+ul { margin: 0; padding: 0; list-style: none; }
+
+/* ------------------------------------------------------------- shell ---- */
+.phone {
   position: relative;
   width: 100%;
-  height: 100%;
-  max-width: 480px;
-  background: var(--paper);
+  max-width: 430px;
+  height: 100vh;
+  height: 100dvh;
+  margin: 0 auto;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  background: var(--bg);
+  color: var(--ink);
+  isolation: isolate;
 }
-.page {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  background: var(--paper);
-  animation: pageIn 0.18s ease;
+@media (min-width: 480px) {
+  body { background: radial-gradient(circle at 50% 0%, #2a1f36 0%, #0d0d11 60%); display: grid; place-items: center; }
+  .phone {
+    height: min(880px, 96dvh);
+    border-radius: 34px;
+    box-shadow: 0 40px 90px rgba(0, 0, 0, .6), 0 0 0 10px #1b1b20, 0 0 0 12px #2c2c34;
+  }
 }
-@keyframes pageIn { from { opacity: 0.4; } to { opacity: 1; } }
 
-.scroll {
-  flex: 1;
+.stack { position: absolute; inset: 0; }
+.screen {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  background: var(--bg);
+  overflow: hidden;
+  isolation: isolate;   /* keeps in-screen z-indexes from leaking across screens */
+}
+.screen.is-top { z-index: 2; }
+.screen--enter.is-top, .screen--pop { z-index: 3; }
+.screen--enter { animation: screenIn .26s cubic-bezier(.22, .7, .25, 1) both; }
+.screen--pop   { animation: screenOut .22s cubic-bezier(.4, 0, 1, 1) both; }
+@keyframes screenIn  { from { transform: translateX(6%); opacity: .4; } to { transform: none; opacity: 1; } }
+@keyframes screenOut { from { transform: none; opacity: 1; } to { transform: translateX(9%); opacity: 0; } }
+
+/* scroll body inside a screen */
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   scrollbar-width: none;
 }
-.scroll::-webkit-scrollbar { display: none; }
+.body::-webkit-scrollbar { width: 0; height: 0; }
 
-.sheet-layer, .toast-layer { position: absolute; inset: 0; pointer-events: none; }
+/* the light sheet that sits under every purple app bar */
+.sheet {
+  background: var(--bg);
+  border-radius: var(--r-sheet) var(--r-sheet) 0 0;
+  margin-top: -2px;
+  position: relative;
+  min-height: 100%;
+}
+.body > .sheet + .sheet { border-radius: 0; }
+.pad { padding: 0 var(--pad); }
+
+/* -------------------------------------------------------- overlays ----- */
+.overlays { position: absolute; inset: 0; pointer-events: none; z-index: 40; }
+.overlays > * { pointer-events: auto; }
+
+.veil {
+  position: absolute; inset: 0;
+  background: rgba(12, 6, 22, .48);
+  backdrop-filter: blur(1px);
+  animation: fade .2s ease both;
+}
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* --------------------------------------------------------- secure ------ */
+.secure-veil {
+  position: absolute; inset: 0; z-index: 60;
+  display: none;
+  place-items: center;
+  background: #12101a;
+  color: #cbb6e0;
+  text-align: center;
+  padding: 30px;
+}
+.secure-veil.is-on { display: grid; }
+.secure-veil__inner p { margin-top: 12px; font-size: 15px; line-height: 1.5; }
+
+/* utility */
+.row { display: flex; align-items: center; }
+.between { justify-content: space-between; }
+.center { justify-content: center; }
+.gap8 { gap: 8px; } .gap12 { gap: 12px; } .gap16 { gap: 16px; }
+.grow { flex: 1 1 auto; min-width: 0; }
+.hide { display: none !important; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mt8 { margin-top: 8px; } .mt12 { margin-top: 12px; } .mt16 { margin-top: 16px; }
+.mt20 { margin-top: 20px; } .mt24 { margin-top: 24px; }
+.mb8 { margin-bottom: 8px; } .mb12 { margin-bottom: 12px; } .mb16 { margin-bottom: 16px; }
+.tc { text-align: center; }
+.muted { color: var(--muted); }
+.strong { font-weight: 700; }
