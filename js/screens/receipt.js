@@ -49,7 +49,7 @@
           '<div class="receipt__card">' +
             '<div class="receipt__card-label">Transaction Summary</div>' +
             '<div class="receipt__summary" data-summary></div>' +
-            '<div class="receipt__qr"><div class="qr-box" data-qr></div></div>' +
+            '<div class="receipt__qr"><div class="receipt__qrbox" data-qr></div></div>' +
             '<div class="receipt__brand">' +
               '<img src="img/cbe-logo.png" alt="">' +
               '<span><b>Commercial Bank of Ethiopia</b><span>The bank you can always rely on!</span></span>' +
@@ -67,9 +67,12 @@
       "</div></div>");
 
     el.querySelector("[data-summary]").innerHTML = Fees.summaryHtml(tx);
-    var canvas = document.createElement("canvas");
-    el.querySelector("[data-qr]").appendChild(canvas);
-    QR.draw(canvas, Fees.qrPayload(tx), 117, "M", 2);
+    /* no frame, pure black modules on white: the reference prints the code
+       straight on the card.  Snapped to the module grid so no module ends up
+       half a pixel wide, on screen and in the saved image alike. */
+    var qrCanvas = document.createElement("canvas");
+    el.querySelector("[data-qr]").appendChild(qrCanvas);
+    QR.draw(qrCanvas, Fees.qrPayload(tx), 132, "M", 2, true, true);
 
     el.addEventListener("click", function (e) {
       var act = e.target.closest("[data-act]");
@@ -283,13 +286,26 @@
   function saveReceipt(el, tx) {
     var node = el.querySelector(".receipt") || el;
     var name = "CBE-receipt-" + tx.id + ".png";
-    return Capture.png(node, {
-      width: 360,
-      height: 800,
+    /* Measure the receipt on screen instead of assuming a phone size: a fixed
+       360x800 box re-wrapped the text and cropped the bottom of the sheet, so
+       the export no longer sat where the eye expects it.  clientWidth keeps
+       the real device width and scrollHeight keeps the whole document. */
+    var w = Math.round(node.clientWidth) || 360;
+    var h = Math.max(Math.round(node.scrollHeight), Math.round(node.clientHeight)) || 800;
+    /* the printed/downloaded copy frames the code in a thin rule; the one on
+       screen stays frameless.  Capture clones the tree synchronously, so the
+       class is removed again in the same tick and never paints. */
+    var qrBox = el.querySelector(".receipt__qrbox");
+    if (qrBox) qrBox.classList.add("is-download");
+    var shot = Capture.png(node, {
+      width: w,
+      height: h,
       scale: 2,
       background: "#ffffff",
       hide: [".receipt__actions", ".receipt__close-wrap", ".receipt__head-act"]
-    }).then(function (canvas) {
+    });
+    if (qrBox) qrBox.classList.remove("is-download");
+    return shot.then(function (canvas) {
       return Capture.saveCanvas(canvas, name);
     }).then(function () {
       UI.toast("Receipt saved to your device");

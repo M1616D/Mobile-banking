@@ -10,7 +10,7 @@
       '<div style="display:grid;place-items:center;width:47%;max-width:190px;aspect-ratio:1/1;' +
         'background:#fff;border-radius:24%;box-shadow:0 18px 44px rgba(0,0,0,.55);' +
         'animation:splashIn .7s cubic-bezier(.2,.8,.3,1) both">' +
-        '<img src="img/cbe-logo.png" alt="CBE Mobile Banking" style="width:74%">' +
+        '<img src="img/cbe-logo.png" alt="Mobile Banking App" style="width:74%">' +
       "</div></div>");
     document.getElementById("phone").appendChild(node);
     setTimeout(function () {
@@ -90,7 +90,7 @@
   /* ------------------------------------------------------ install app ----
      The service worker + manifest already make the build installable; this
      surfaces the browser's install prompt as a small in-app banner so the
-     user is actually invited to add CBE Mobile Banking to the home screen. */
+     user is actually invited to add the Mobile Banking App to the home screen. */
   var installState = { deferred: null, banner: null };
 
   function hideInstallBanner() {
@@ -104,7 +104,7 @@
     if (installState.banner || !installState.deferred) return;
     installState.banner = UI.h('<div class="install-banner">' +
       '<img src="img/icon-192.png" alt="">' +
-      '<span class="grow"><b>Install App</b><small>Add CBE Mobile Banking to your home screen</small></span>' +
+      '<span class="grow"><b>Install App</b><small>Add the Mobile Banking App to your home screen</small></span>' +
       '<button class="btn btn--sm" data-install>Install</button>' +
       '<button class="install-banner__x" data-dismiss aria-label="Dismiss">' + Icon("x", 18) + "</button>" +
     "</div>");
@@ -137,7 +137,7 @@
     global.addEventListener("appinstalled", function () {
       installState.deferred = null;
       hideInstallBanner();
-      UI.toast("CBE Mobile Banking installed");
+      UI.toast("Mobile Banking App installed");
     });
   }
 

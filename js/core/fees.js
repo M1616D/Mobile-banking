@@ -106,15 +106,21 @@
       " and Disaster Recovery (5%) of " + U.etb(f.drrf) + ".";
   }
 
-  /* payload encoded into every receipt QR code */
+  /* payload encoded into every receipt QR code.
+     It stays under 41 bytes on purpose: that keeps the symbol a 29 module
+     (version 3) code at ECC M — the same grid, scale and quiet zone as the
+     printed reference receipt — while still carrying the receipt's identity
+     (reference number, date, amount, total debited).  The statement page still
+     spells out every field in full. */
+  var QMON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function qrDate(d) {
+    return U.pad(d.getDate()) + "-" + QMON[d.getMonth()] + "-" + String(d.getFullYear()).slice(2);
+  }
   function qrPayload(tx) {
     var f = tx.fees;
     return [
-      "CBE", tx.id, U.statementDate(new Date(tx.date)),
-      tx.senderName, "1****" + tx.senderLast4,
-      tx.receiverName, "1****" + tx.receiverLast4,
-      U.money(f.amount) + " ETB", "SC " + U.money(f.service), "VAT " + U.money(f.vat),
-      "DRRF " + U.money(f.drrf), "TOTAL " + U.money(f.total)
+      "CBE", tx.id, qrDate(new Date(tx.date)),
+      U.money(f.amount), U.money(f.total)
     ].join("|");
   }
 

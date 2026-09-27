@@ -349,6 +349,17 @@
 }
 .receipt__summary b { font-weight: 700; }
 .receipt__qr { display: grid; place-items: center; padding: 4px 0 0; }
+/* The printed code sits straight on the card: no frame, no border, pure black
+   modules on white so it scans and photographs cleanly. */
+.receipt__qrbox { display: grid; place-items: center; background: #fff; border: 0; padding: 0; }
+.receipt__qrbox canvas { display: block; image-rendering: pixelated; }
+/* the saved / downloaded receipt frames the code in a hairline rule on white;
+   the class is applied only while the export clone is taken */
+.receipt__qrbox.is-download {
+  border: 3px solid #7e7e7e;
+  border-radius: 6px;
+  padding: 0;
+}
 .receipt__brand {
   display: flex; align-items: center; gap: 10px;
   padding: 9px 0 0;

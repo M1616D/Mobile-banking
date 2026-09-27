@@ -233,7 +233,7 @@
           '<div class="pad" style="padding-top:16px">' +
             '<div class="group">' +
               '<div class="mi-head">' +
-                '<span class="avatar avatar--solid">' + Icon("users", 26) + "</span>" +
+                '<span class="avatar avatar--solid">' + Icon("user", 26) + "</span>" +
                 '<span class="grow"><span class="mi-head__name">' + U.esc(s.holderName) + "</span>" +
                   '<div class="mi-head__sub">Last Sign In: ' + U.esc(U.signIn(s.lastSignIn ? new Date(s.lastSignIn) : new Date())) + "</div></span>" +
               "</div>" +
@@ -294,7 +294,7 @@
         UI.sheet({
           title: "Log out?",
           closeBtn: true,
-          body: '<p class="form-note" style="padding-bottom:16px">You will need to authenticate again to use CBE Mobile Banking.</p>' +
+          body: '<p class="form-note" style="padding-bottom:16px">You will need to authenticate again to use the Mobile Banking App.</p>' +
             '<div class="btn-row"><button class="btn btn--quiet" data-close="1">Cancel</button>' +
             '<button class="btn btn--danger" data-act="confirm-logout">Log out</button></div>'
         }).node.addEventListener("click", function (ev) {

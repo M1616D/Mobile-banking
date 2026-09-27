@@ -18,13 +18,8 @@
             '<span class="rowline__text"><span class="rowline__title">' + Lang.t("settings_language") + "</span>" +
               '<div class="rowline__sub">' + Lang.name() + "</div></span>" +
             '<span class="rowline__chev">' + Icon("chevronRight", 20) + "</span></div>" +
-          '<div class="rowline" data-go="install">' +
-            '<span class="rowline__icon">' + Icon("download", 22) + "</span>" +
-            '<span class="rowline__text"><span class="rowline__title">Install App</span>' +
-              '<div class="rowline__sub">Add CBE Mobile Banking to your home screen</div></span>' +
-            '<span class="rowline__chev">' + Icon("chevronRight", 20) + "</span></div>" +
           '<div class="rowline" data-go="accountPrefs">' +
-            '<span class="rowline__icon">' + Icon("userPlus", 22) + "</span>" +
+            '<span class="rowline__icon">' + Icon("users", 22) + "</span>" +
             '<span class="rowline__text"><span class="rowline__title">Account Preferences</span></span>' +
             '<span class="rowline__chev">' + Icon("chevronRight", 20) + "</span></div>" +
           '<div class="rowline" data-go="notificationPrefs">' +
@@ -83,7 +78,6 @@
       if (go) {
         var target = go.dataset.go;
         if (target === "language") { Misc.languageSheet(); return; }
-        if (target === "install") { App.promptInstall(); return; }
         Router.push(target);
         return;
       }
@@ -91,7 +85,7 @@
         UI.sheet({
           title: "Log out?",
           closeBtn: true,
-          body: '<p class="form-note" style="padding-bottom:16px">You will need to authenticate again to use CBE Mobile Banking.</p>' +
+          body: '<p class="form-note" style="padding-bottom:16px">You will need to authenticate again to use the Mobile Banking App.</p>' +
             '<div class="btn-row"><button class="btn btn--quiet" data-close="1">Cancel</button>' +
             '<button class="btn btn--danger" data-act="yes">Log out</button></div>'
         }).node.addEventListener("click", function (ev) {

@@ -29,8 +29,10 @@
     "word-break", "overflow-wrap", "vertical-align", "direction",
     "flex-direction", "flex-wrap", "flex-grow", "flex-shrink", "flex-basis",
     "align-items", "align-self", "align-content", "justify-content",
+    "justify-items", "justify-self",
     "gap", "row-gap", "column-gap", "order",
     "grid-template-columns", "grid-template-rows", "grid-auto-flow", "grid-column", "grid-row",
+    "grid-auto-columns", "grid-auto-rows",
     "overflow", "overflow-x", "overflow-y",
     "object-fit", "object-position", "transform", "transform-origin", "z-index",
     "list-style-type", "aspect-ratio", "mix-blend-mode", "isolation"
@@ -72,6 +74,25 @@
       img.onerror = reject;
       img.src = url;
     });
+  }
+
+  /* An <img> whose src was only just assigned (or a <canvas> that was swapped
+     for a bitmap) has not decoded yet, and a half decoded image rasterises as
+     an empty hole — that is how the receipt QR went missing from the export. */
+  function ready(im) {
+    return new Promise(function (res) {
+      /* a bitmap is either decodable right now or never will be: waiting on
+         `decode()` can hang forever, so the wait is always time boxed */
+      if (im.complete && im.naturalWidth) { res(); return; }
+      im.addEventListener("load", res, { once: true });
+      im.addEventListener("error", res, { once: true });
+      setTimeout(res, 1200);
+    });
+  }
+
+  function whenImagesReady(root) {
+    var imgs = Array.prototype.slice.call(root.querySelectorAll("img"));
+    return Promise.all(imgs.filter(function (im) { return !!im.getAttribute("src"); }).map(ready));
   }
 
   /**
@@ -129,7 +150,25 @@
         clone.style.overflow = "hidden";
         clone.style.margin = "0";
         clone.style.transform = "none";
-        clone.style.position = "static";
+        /* the clone keeps its own positioning context (a static root would
+           re-anchor absolutely positioned children to the canvas edge) */
+        if (clone.style.position === "fixed") clone.style.position = "absolute";
+
+        /* background images must be inlined too, otherwise the SVG rasterises
+           with a broken (or cross-origin) reference and the canvas is tainted */
+        var bgJobs = [];
+        dstAll.forEach(function (n) {
+          var bg = n.style.backgroundImage;
+          if (!bg || bg.indexOf("url(") < 0) return;
+          var found = [], m, re = /url\((['"]?)([^'")]+)\1\)/g;
+          while ((m = re.exec(bg))) found.push(m[2]);
+          if (!found.length) return;
+          bgJobs.push(Promise.all(found.map(toDataUrl)).then(function (urls) {
+            var next = bg;
+            found.forEach(function (u, i) { next = next.split(u).join(urls[i]); });
+            n.style.backgroundImage = next;
+          }));
+        });
 
         Promise.all(imgPairs.map(function (pair) {
           return toDataUrl(pair[0].currentSrc || pair[0].getAttribute("src"));
@@ -138,29 +177,51 @@
             urls.forEach(function (u, idx) {
               if (imgPairs[idx] && imgPairs[idx][1] && u) imgPairs[idx][1].setAttribute("src", u);
             });
-
+            return Promise.all(bgJobs);
+          })
+          .then(function () {
             var wrapper = document.createElementNS("http://www.w3.org/1999/xhtml", "div");
             wrapper.setAttribute("style", "width:" + w + "px;height:" + h + "px;overflow:hidden;" +
               "background:" + (opts.background || "#ffffff") + ";");
             wrapper.appendChild(clone);
 
-            var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '">' +
-              '<foreignObject x="0" y="0" width="' + w + '" height="' + h + '">' +
-              new XMLSerializer().serializeToString(wrapper) +
-              "</foreignObject></svg>";
+            /* An un-attached clone gives images nothing to decode into, so it
+               is parked off-screen for the duration of the capture. */
+            var holder = document.createElement("div");
+            holder.setAttribute("style", "position:fixed;left:-20000px;top:0;width:" + w +
+              "px;height:" + h + "px;pointer-events:none;opacity:0");
+            holder.appendChild(wrapper);
+            document.body.appendChild(holder);
 
-            var url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
-            return loadImage(url);
-          })
-          .then(function (img) {
-            var canvas = document.createElement("canvas");
-            canvas.width = Math.round(w * scale);
-            canvas.height = Math.round(h * scale);
-            var ctx = canvas.getContext("2d");
-            ctx.fillStyle = opts.background || "#ffffff";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas);
+            function cleanup() {
+              if (holder.parentNode) holder.parentNode.removeChild(holder);
+            }
+
+            return whenImagesReady(wrapper)
+              .then(function () {
+                /* the viewBox lets the browser rasterise the vector content at
+                   the output resolution: drawing a 1x raster of it into a 2x
+                   canvas resampled every glyph and the QR code into mush */
+                var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + Math.round(w * scale) +
+                  '" height="' + Math.round(h * scale) + '" viewBox="0 0 ' + w + " " + h + '">' +
+                  '<foreignObject x="0" y="0" width="' + w + '" height="' + h + '">' +
+                  new XMLSerializer().serializeToString(wrapper) +
+                  "</foreignObject></svg>";
+                var url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+                return loadImage(url);
+              })
+              .then(function (img) {
+                var canvas = document.createElement("canvas");
+                canvas.width = Math.round(w * scale);
+                canvas.height = Math.round(h * scale);
+                var ctx = canvas.getContext("2d");
+                ctx.fillStyle = opts.background || "#ffffff";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                cleanup();
+                resolve(canvas);
+              })
+              .catch(function (err) { cleanup(); throw err; });
           })
           .catch(reject);
       } catch (e) {

@@ -330,21 +330,30 @@
   }
 
   /* render into a canvas, scaled to fit `px` css pixels */
-  function draw(canvas, text, px, eccLevel, quiet) {
+  function draw(canvas, text, px, eccLevel, quiet, snap, hidpi) {
     var qr = encode(text, eccLevel);
     var q = quiet === undefined ? 2 : quiet;
     var total = qr.size + q * 2;
-    var scale = Math.max(1, Math.floor((px || 160) / total));
+    /* `snap` keeps the module grid on whole pixels: scaling a 53 module code
+       to an arbitrary width resamples the modules into uneven 2px/3px bars,
+       so the receipt asks for the closest clean multiple of the grid instead */
+    var scale = snap ? Math.max(1, Math.round((px || 160) / total)) : Math.max(1, Math.floor((px || 160) / total));
     var dim = total * scale;
-    canvas.width = dim; canvas.height = dim;
-    canvas.style.width = px + "px"; canvas.style.height = px + "px";
+    /* `hidpi` doubles the bitmap while the CSS size stays put, so the code is
+       still 1:1 (never resampled) at any device pixel ratio and in the
+       double resolution receipt export */
+    var out = hidpi ? 2 : 1;
+    canvas.width = dim * out; canvas.height = dim * out;
+    var css = snap ? dim : px;
+    canvas.style.width = css + "px"; canvas.style.height = css + "px";
     var ctx = canvas.getContext("2d");
     ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, dim, dim);
-    ctx.fillStyle = "#111111";
+    ctx.fillRect(0, 0, dim * out, dim * out);
+    ctx.fillStyle = "#000000";
     for (var y = 0; y < qr.size; y++)
       for (var x = 0; x < qr.size; x++)
-        if (qr.modules.get(x, y)) ctx.fillRect((x + q) * scale, (y + q) * scale, scale, scale);
+        if (qr.modules.get(x, y))
+          ctx.fillRect((x + q) * scale * out, (y + q) * scale * out, scale * out, scale * out);
     return qr;
   }
 
