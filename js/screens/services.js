@@ -92,7 +92,10 @@
       "</div>";
     }
 
-    /* -------------------------------------------------- other services -- */
+    /* -------------------------------------------------- other services --
+       Every entry is a real, touchable button: the ones with a target open
+       their screen, the rest raise the generic error toast rather than sit
+       there dead or claim everything is "Coming Soon". */
     function paintOServices() {
       host.innerHTML = '<div class="pad" style="padding-top:16px">' +
         '<div class="grid2">' + (cat.items || []).map(function (i) {
@@ -100,8 +103,8 @@
             ? '<img src="' + U.esc(i.img) + '" style="width:26px;height:26px;object-fit:contain">'
             : Icon(i.icon || "list", 24);
           return '<button class="tile tile--left" style="min-height:56px;padding:12px 14px;gap:12px' +
-            (i.wide ? ";grid-column:1 / -1" : "") + '" data-label="' + U.esc(i.label) + '"' +
-            (i.to ? ' data-os="' + U.esc(i.to) + '"' : "") + ">" +
+            (i.wide ? ";grid-column:1 / -1" : "") + '" data-os="' + U.esc(i.to || "") + '"' +
+            ' data-label="' + U.esc(i.label) + '">' +
             '<span style="color:var(--purple);flex:0 0 auto">' + icon + "</span>" +
             '<span class="tile__label">' + U.esc(i.label).replace(/\n/g, "<br>") + "</span></button>";
         }).join("") + "</div></div>";
@@ -118,7 +121,11 @@
         return;
       }
       var os = e.target.closest("[data-os]");
-      if (os) { Router.push(os.dataset.os); return; }
+      if (os) {
+        if (os.dataset.os) Router.push(os.dataset.os);
+        else UI.toast("Something went wrong, try again later.");
+        return;
+      }
       var tile = e.target.closest("[data-to]");
       if (tile) { openTarget(tile.dataset.to, { label: tile.dataset.label }); return; }
       var rowBtn = e.target.closest("[data-to]");
@@ -194,11 +201,13 @@
         if (mode === "customer" && !values.merchant) { UI.toast("Enter the merchant code"); return; }
       }
 
-      /* Account Validation: bank + account, then the amount, then the receipt */
-      if (key === "otherBank") {
+      /* Account Validation: bank + account, then the amount, then the receipt.
+         Microfinance uses the exact same intermediate step (choose from the
+         list, enter the account) before the transfer is confirmed. */
+      if (key === "otherBank" || key === "microfinance") {
         var bank = values.bankName || "";
         var acct = U.digits(values.account || "");
-        if (!bank) { UI.toast("Select the bank"); return; }
+        if (!bank) { UI.toast(key === "microfinance" ? "Select the microfinance" : "Select the bank"); return; }
         if (acct.length < 5) { UI.toast("Enter a valid account number"); return; }
         var rec = Flow.resolveReceiver(acct);
         Flow.amountSheet("", function (cents) {
@@ -206,7 +215,7 @@
             amount: cents,
             receiverName: rec.name || Store.get().receiverName,
             receiverAccount: acct,
-            channel: "otherbank",
+            channel: key === "otherBank" ? "otherbank" : "mb",
             label: bank
           }).catch(function () { });
         });
@@ -259,9 +268,6 @@
           '<button class="btn btn--sm" data-act="back" style="margin-top:10px">Go Back</button>' +
         "</div>" +
       "</div></div></div>");
-    el.addEventListener("click", function (e) {
-      if (e.target.closest('[data-act="back"]')) Router.back();
-    });
     return { el: el };
   }
 
@@ -486,6 +492,8 @@
   }
 
   Router.define("catalog", catalogView);
+  /* the login screen's "Other Services" grid opens the same catalogue view */
+  Router.define("otherServices", function () { return catalogView({ key: "otherServices", title: "Other Services" }); });
   Router.define("coming", comingView);
   Router.define("withdrawals", withdrawalsView);
   Router.define("scheduled", function () {

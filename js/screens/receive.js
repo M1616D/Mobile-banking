@@ -6,8 +6,9 @@
 
   function receiveView() {
     var amount = 0;
-    var el = UI.h('<div class="screen">' +
-      UI.appbar({ title: "Receive Money" }) +
+    var el = UI.h('<div class="screen receive">' +
+      '<div class="receive__bg" aria-hidden="true"></div>' +
+      UI.appbar({ title: "Receive Money", light: true }) +
       '<div class="body"><div class="sheet">' +
         '<div class="receive-wrap">' +
           '<div class="receive-card">' +
@@ -137,7 +138,6 @@
       }
       var act = e.target.closest("[data-act]");
       if (!act) return;
-      if (act.dataset.act === "back") { Router.back(); return; }
       if (act.dataset.act === "flash") { act.classList.toggle("is-on"); UI.toast("Flash toggled"); return; }
       if (act.dataset.act === "gallery") { UI.toast("Pick a QR image from your gallery"); return; }
     });

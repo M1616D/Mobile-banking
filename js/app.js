@@ -53,6 +53,19 @@
     });
   }
 
+  /* --------------------------------------------- on-screen back buttons --
+     Every app bar carries a [data-act="back"] button. Handling it once here
+     keeps the client-side stack authoritative on every screen, so no back
+     button ever falls through to a browser reload. */
+  function installBackButtons() {
+    document.addEventListener("click", function (e) {
+      var b = e.target.closest('[data-act="back"]');
+      if (!b || b.disabled) return;
+      e.preventDefault();
+      Router.back();
+    });
+  }
+
   /* --------------------------------------------------------- offline ----- */
   function installServiceWorker() {
     if (!("serviceWorker" in navigator)) return;
@@ -74,11 +87,67 @@
     } catch (e) { }
   }
 
+  /* ------------------------------------------------------ install app ----
+     The service worker + manifest already make the build installable; this
+     surfaces the browser's install prompt as a small in-app banner so the
+     user is actually invited to add CBE Mobile Banking to the home screen. */
+  var installState = { deferred: null, banner: null };
+
+  function hideInstallBanner() {
+    if (installState.banner && installState.banner.parentNode) {
+      installState.banner.parentNode.removeChild(installState.banner);
+    }
+    installState.banner = null;
+  }
+
+  function showInstallBanner() {
+    if (installState.banner || !installState.deferred) return;
+    installState.banner = UI.h('<div class="install-banner">' +
+      '<img src="img/icon-192.png" alt="">' +
+      '<span class="grow"><b>Install App</b><small>Add CBE Mobile Banking to your home screen</small></span>' +
+      '<button class="btn btn--sm" data-install>Install</button>' +
+      '<button class="install-banner__x" data-dismiss aria-label="Dismiss">' + Icon("x", 18) + "</button>" +
+    "</div>");
+    document.getElementById("phone").appendChild(installState.banner);
+    installState.banner.addEventListener("click", function (e) {
+      if (e.target.closest("[data-install]")) {
+        var d = installState.deferred;
+        hideInstallBanner();
+        if (d && d.prompt) d.prompt();
+      } else if (e.target.closest("[data-dismiss]")) {
+        hideInstallBanner();
+      }
+    });
+  }
+
+  /* called by the Settings "Install App" row */
+  function promptInstall() {
+    var d = installState.deferred;
+    if (d && d.prompt) { d.prompt(); return true; }
+    UI.toast("Use your browser menu → \u201cAdd to Home screen\u201d to install.");
+    return false;
+  }
+
+  function installAppPrompt() {
+    global.addEventListener("beforeinstallprompt", function (e) {
+      e.preventDefault();
+      installState.deferred = e;
+      setTimeout(showInstallBanner, 1400);
+    });
+    global.addEventListener("appinstalled", function () {
+      installState.deferred = null;
+      hideInstallBanner();
+      UI.toast("CBE Mobile Banking installed");
+    });
+  }
+
   /* ------------------------------------------------------------ boot ----- */
   function boot() {
     Guard.init();
     Misc.init();
     installBackHandling();
+    installBackButtons();
+    installAppPrompt();
     splash();
 
     // screens that must never be re-rendered from a stale stack
@@ -95,6 +164,7 @@
 
     installServiceWorker();
 
+    if (global.Lang) Lang.apply();
     document.addEventListener("gesturestart", function (e) { e.preventDefault(); });
     document.addEventListener("dblclick", function (e) { e.preventDefault(); }, { passive: false });
   }
@@ -102,5 +172,5 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
 
-  global.App = { boot: boot };
+  global.App = { boot: boot, promptInstall: promptInstall };
 })(window);

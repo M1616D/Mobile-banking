@@ -106,6 +106,18 @@ BACKGROUND_MAP = {"home page/map.png": "map.png"}
 # per-asset long-edge caps (the defaults are too generous for some sources)
 LIMITS = {"stamp.png": 420, "map.png": 1024, "appicon-context.jpg": 512}
 
+# ------------------------------------------------- installable app icons ----
+# Square, white-background icons for the manifest + apple-touch-icon, built
+# from the uploaded white-background CBE logo.  The "maskable" size keeps a
+# larger safe margin so Android's mask never clips the mark.
+ICON_SRC = "logos/logo  trnasparent.png"
+ICON_SIZES = {
+    "icon-192.png": (192, 0.78),
+    "icon-512.png": (512, 0.78),
+    "icon-maskable-512.png": (512, 0.62),
+    "apple-touch-icon.png": (180, 0.78),
+}
+
 
 def trim(im):
     """Trim a fully transparent / uniform border so every logo is tight."""
@@ -129,6 +141,23 @@ def save_png(src, dst, limit=512):
         s = limit / max(im.size)
         im = im.resize((max(1, int(im.width * s)), max(1, int(im.height * s))), Image.LANCZOS)
     im.save(dst, "PNG", optimize=True)
+
+
+def build_icons():
+    src = os.path.join(SRC, ICON_SRC)
+    if not os.path.exists(src):
+        print("  ! missing", src)
+        return 0
+    logo = trim(Image.open(src).convert("RGBA"))
+    for out, (px, fill) in ICON_SIZES.items():
+        canvas = Image.new("RGBA", (px, px), (255, 255, 255, 255))
+        target = max(1, int(px * fill))
+        s = target / max(logo.size)
+        mark = logo.resize((max(1, int(logo.width * s)), max(1, int(logo.height * s))), Image.LANCZOS)
+        canvas.alpha_composite(mark, ((px - mark.width) // 2, (px - mark.height) // 2))
+        canvas.convert("RGB").save(os.path.join(OUT, out), "PNG", optimize=True)
+    print("app icons written ->", ", ".join(ICON_SIZES))
+    return len(ICON_SIZES)
 
 
 def main():
@@ -169,6 +198,7 @@ def main():
             continue
         save_png(src, os.path.join(OUT, out), limit=LIMITS.get(out, 1440))
         n += 1
+    n += build_icons()
     print(f"assets written: {n}  -> {OUT}/")
 
 

@@ -19,11 +19,7 @@
 
   function build(id, params) {
     var factory = screens[id];
-    if (!factory) {
-      return { el: UI.h('<div class="screen"><div class="body"><div class="sheet pad">' +
-        '<div class="empty"><div class="empty__title">Coming Soon</div>' +
-        '<p class="empty__text">This service is not available in this build.</p></div></div></div></div>') };
-    }
+    if (!factory) return null;
     var view = factory(params || {}) || {};
     var el = view.el || view;
     if (el && el.classList) el.classList.add("screen");
@@ -39,6 +35,12 @@
     define: define,
 
     push: function (id, params) {
+      if (!screens[id]) {
+        /* an unmapped button must never look dead or freeze the app */
+        if (global.UI && UI.toast) UI.toast("Something went wrong, try again later.");
+        else console.warn("Router: no screen registered for", id);
+        return null;
+      }
       var view = build(id, params);
       view.id = id;
       view.params = params || {};
@@ -99,9 +101,21 @@
       var top = stack[stack.length - 1];
       if (!top) return;
       var fresh = build(top.id, top.params);
-      if (!fresh.el) return;
+      if (!fresh || !fresh.el) return;
       top.el.innerHTML = fresh.el.innerHTML;
       if (fresh.mount) { try { fresh.mount(top.el, top.params); } catch (e) { console.error(e); } }
+    },
+
+    /* re-render every screen on the stack (after a language switch) */
+    refreshAll: function () {
+      stack.forEach(function (entry) {
+        var fresh = build(entry.id, entry.params);
+        if (fresh && fresh.el) entry.el.innerHTML = fresh.el.innerHTML;
+      });
+      var top = stack[stack.length - 1];
+      var freshTop = top && build(top.id, top.params);
+      if (freshTop && freshTop.mount) { try { freshTop.mount(top.el, top.params); } catch (e) { console.error(e); } }
+      if (global.Lang && Lang.apply) Lang.apply();
     }
   };
 

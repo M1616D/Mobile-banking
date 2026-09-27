@@ -11,9 +11,10 @@
       { id: "transactions", label: "Transactions", icon: "bankSolid" },
       { id: "settings", label: "Settings", icon: "gearSolid" }
     ];
+    var names = { home: Lang.t("nav_home"), transactions: Lang.t("nav_tx"), settings: Lang.t("nav_settings") };
     return '<nav class="nav">' + items.map(function (it) {
       return '<button class="nav__item' + (it.id === active ? " is-on" : "") + '" data-nav="' + it.id + '">' +
-        Icon(it.icon, 23) + "<span>" + it.label + "</span></button>";
+        Icon(it.icon, 23) + "<span>" + names[it.id] + "</span></button>";
     }).join("") + "</nav>";
   };
 
@@ -64,9 +65,9 @@
           '<div class="hero__top">' +
             '<button class="iconbtn hero__icon" data-act="myinfo" aria-label="My information" style="width:34px;height:34px">' +
               Icon("grid", 22) + "</button>" +
-            '<div class="hello"><div class="hello__hi">Hello,</div>' +
+            '<div class="hello"><div class="hello__hi">' + Lang.t("hello") + '</div>' +
               '<div class="hello__name" data-slot="name"></div></div>' +
-            '<button class="lang-pill" data-act="lang">English ' + Icon("chevronDown", 13) + "</button>" +
+            '<button class="lang-pill" data-act="lang"><span data-langlabel>' + Lang.name() + '</span> ' + Icon("chevronDown", 13) + "</button>" +
             '<button class="iconbtn hero__icon" data-act="refresh" aria-label="Refresh" style="width:34px;height:34px">' +
               Icon("refresh", 20) + "</button>" +
             '<button class="iconbtn hero__icon" data-act="search" aria-label="Search" style="width:34px;height:34px">' +
@@ -152,7 +153,7 @@
         if (a === "search") { Router.push("search"); return; }
         if (a === "scan") { Router.push("scan"); return; }
         if (a === "lang") {
-          UI.selectSheet("Select Language", ["አማርኛ", "English"], function (v) { UI.toast(v + " selected"); });
+          Misc.languageSheet();
           return;
         }
         if (a === "refresh") {
@@ -187,9 +188,11 @@
 
   function gotoService(id) {
     if (!id) return;
-    var special = { transfer: 1, receive: 1, loan: 1, cards: 1, withdrawals: 1, scheduled: 1, receipts: 1, verifyReceipt: 1 };
-    if (special[id]) { Router.push(id); return; }
-    Router.push("catalog", { key: id });
+    /* anything declared in the catalogue opens the generic catalogue screen;
+       everything else is a screen of its own. Unmapped ids fall through to
+       Router.push, which raises the generic error toast. */
+    if (Brands.CATALOG[id]) { Router.push("catalog", { key: id }); return; }
+    Router.push(id);
   }
   window.gotoService = gotoService;
 
@@ -231,7 +234,6 @@
     setTimeout(function () { input.focus(); }, 120);
 
     el.addEventListener("click", function (e) {
-      if (e.target.closest('[data-act="back"]')) { Router.back(); return; }
       if (e.target.closest('[data-act="clear"]')) { Router.back(); return; }
       var go = e.target.closest("[data-go]");
       if (go) {

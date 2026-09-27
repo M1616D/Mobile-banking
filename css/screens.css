@@ -74,7 +74,9 @@
 .login__orb {
   width: 94px; height: 94px; border-radius: 50%;
   background: radial-gradient(circle at 34% 28%, #9b4bd0 0%, #7a1fa2 55%, #61138a 100%);
-  box-shadow: 0 12px 26px rgba(90, 20, 120, .35), inset 0 -4px 12px rgba(0, 0, 0, .18);
+  /* thin coloured ring around the fingerprint glyph, as in the reference */
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 0 5px rgba(122, 31, 162, .16), 0 12px 26px rgba(90, 20, 120, .35), inset 0 -4px 12px rgba(0, 0, 0, .18);
   display: grid; place-items: center;
   color: #fff;
   transition: transform .14s ease;
@@ -122,7 +124,8 @@
   padding-bottom: 26px;
   position: relative;
 }
-.home__scroll > .hero { flex: 0 0 auto; }
+/* the account + balance hero is pinned: only the service lists below scroll */
+.home__scroll > .hero { flex: 0 0 auto; position: sticky; top: 0; z-index: 5; }
 .handle {
   width: 34px; height: 4px; border-radius: 3px;
   background: var(--handle);
@@ -448,6 +451,26 @@
 .verify-form { padding: 18px 16px 0; }
 
 /* --------------------------------------------------------- receive money */
+/* Full-bleed world map: the uploaded map art covers the entire screen, the
+   QR card floats over it, exactly like the reference Receive Money page. */
+.receive { background: #0e0d11; }
+.receive__bg {
+  position: absolute; inset: 0;
+  background: url("../img/map.png") center / cover no-repeat;
+  opacity: .92;
+}
+.receive .appbar,
+.receive .appbar--light {
+  background: transparent;
+  color: #fff;
+  border-bottom: 0;
+  box-shadow: none;
+}
+.receive .appbar__title { color: #fff; text-shadow: 0 1px 6px rgba(0, 0, 0, .45); }
+.receive .appbar .iconbtn { color: #fff; }
+.receive .body { position: relative; z-index: 2; }
+.receive .sheet { background: transparent; }
+.receive .receive-card { background: rgba(12, 11, 20, .9); }
 .receive-wrap { padding: 14px 16px 24px; }
 .receive-card {
   border-radius: 20px;

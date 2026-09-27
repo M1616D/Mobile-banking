@@ -94,6 +94,16 @@
     { label: "Zemen Bank", img: B + "zemen.png" }
   ];
 
+  /* ------------------------------------------ the "Micro Finance" list --
+     "Transfer to Micro Finances" opens Account Validation first: the
+     microfinance is chosen from this list, then the account number is typed.
+     Only after that does the picker list itself appear. */
+  var MICRO_LIST = [
+    { label: "KAAFI Microfinance", img: B + "kaafi.png" },
+    { label: "RAYS Microfinance", img: B + "rays.png" },
+    { label: "Vision Fund Microfinance", img: B + "vision.png" }
+  ];
+
   var CATALOG = {
     /* ------------------------------------------------------------ travel */
     airtime: {
@@ -144,15 +154,14 @@
         placeholder: "Enter Account Number" }
     ], { channel: "otherbank", continueLabel: "Continue", nav: false }),
 
-    microfinance: {
-      kind: "rows", title: "Transfer to Micro Finance", search: true, items: [
-        { label: "KAAFI Microfinance", img: B + "kaafi.png", to: "microForm" },
-        { label: "RAYS Microfinance", img: B + "rays.png", to: "microForm" },
-        { label: "Vision Fund Microfinance", img: B + "vision.png", to: "microForm" }
-      ]
-    },
+    microfinance: form("Account Validation", [
+      { label: "Microfinance Name", icon: "dollarCircle", type: "select", key: "bankName",
+        placeholder: "Select from the list", options: MICRO_LIST, picker: true },
+      { label: "Account", icon: "cash", type: "tel", maxlength: 13, key: "account",
+        placeholder: "Enter Account Number" }
+    ], { channel: "mb", continueLabel: "Continue", nav: false }),
     microForm: form("Transfer to Micro Finance", [
-      { label: "Microfinance Name", icon: "dollarCircle", type: "select", options: ["KAAFI Microfinance", "RAYS Microfinance", "Vision Fund Microfinance"], key: "bankName" },
+      { label: "Microfinance Name", icon: "dollarCircle", type: "select", options: MICRO_LIST, key: "bankName" },
       { label: "Account", icon: "idCard", type: "tel", maxlength: 13, key: "account", placeholder: "Enter Account Number" }
     ], { channel: "mb" }),
 
@@ -350,7 +359,7 @@
 
     /* --------------------------------------------------------- other services (login screen) */
     otherServices: {
-      kind: "oservices", title: "Other Services", items: [
+      kind: "oservices", title: "Other Services", nav: false, items: [
         { label: "Exchange Rates", icon: "swap" },
         { label: "Internet Banking", icon: "bank" },
         { label: "USSD", icon: "ussd" },
@@ -358,9 +367,9 @@
         { label: "Feedback", icon: "chat" },
         { label: "CBE Locator", icon: "mapPin" },
         { label: "Call Center", icon: "phoneCall" },
-        { label: "Privacy Policy", img: "../cbe-logo.png", to: "privacy" },
-        { label: "Terms and\nTariffs", img: "../cbe-logo.png", to: "terms" },
-        { label: "Survey", img: "../cbe-logo.png" },
+        { label: "Privacy Policy", img: "img/cbe-logo.png", to: "privacy" },
+        { label: "Terms and\nTariffs", img: "img/cbe-logo.png", to: "terms" },
+        { label: "Survey", img: "img/cbe-logo.png" },
         { label: "CBE Links", icon: "link", wide: true }
       ]
     }

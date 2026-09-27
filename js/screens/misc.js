@@ -40,13 +40,15 @@
         '<span class="radio-row__check">' + (o.id === cur ? Icon("check", 16) : "") + "</span>" +
         o.flag + "<span>" + o.label + "</span></button>";
     }).join("") + "</div>";
-    var s = UI.sheet({ title: "Select Language", body: body });
+    var s = UI.sheet({ title: Lang.t("select_language"), body: body });
     s.node.addEventListener("click", function (e) {
       var b = e.target.closest("[data-lang]");
       if (!b) return;
-      Store.set({ language: b.dataset.lang });
+      var lang = b.dataset.lang;
       s.close();
-      UI.toast(b.dataset.lang === "en" ? "English selected" : "አማርኛ ተመርጧል");
+      /* this re-renders the current screen and every language pill */
+      Lang.set(lang);
+      UI.toast(lang === "en" ? "English selected" : "አማርኛ ተመርጧል");
     });
   }
 

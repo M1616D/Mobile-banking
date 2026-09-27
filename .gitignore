@@ -14,6 +14,10 @@ _ref/
 # already ships every asset it needs under img/
 ui/
 
+# Python bytecode from tools/
+__pycache__/
+*.pyc
+
 # OS noise
 Thumbs.db
 .DS_Store

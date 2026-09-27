@@ -15,7 +15,7 @@
       '<div class="login">' +
         '<div class="login__top">' +
           '<button class="iconbtn" data-act="bell" aria-label="Notifications" style="color:#6c6c78">' + Icon("bell", 21) + "</button>" +
-          '<div class="pin-center"><button class="lang-pill" data-act="lang">English ' + Icon("chevronDown", 14) + "</button></div>" +
+          '<div class="pin-center"><button class="lang-pill" data-act="lang"><span data-langlabel>' + Lang.name() + '</span> ' + Icon("chevronDown", 14) + "</button></div>" +
           '<button class="iconbtn" data-act="other" aria-label="Other services" style="color:#4a3562">' + Icon("grid", 22) + "</button>" +
         "</div>" +
         '<div class="login__body">' +
@@ -24,7 +24,7 @@
             (s.noor ? "" : '<div class="login__amharic am">የኢትዮጵያ ንግድ ባንክ</div>') +
             '<div class="login__bank">COMMERCIAL BANK OF ETHIOPIA</div>' +
             '<div class="login__rule"></div>' +
-            '<div class="login__welcome">Welcome back</div>' +
+            '<div class="login__welcome">' + Lang.t("login_welcome") + "</div>" +
             '<div class="login__field" data-slot="field"></div>' +
           "</div>" +
           '<div class="login__orb-wrap" data-slot="orb"></div>' +
@@ -51,8 +51,8 @@
         orb.innerHTML =
           '<button class="login__orb" data-act="bio" aria-label="Use biometrics">' +
             '<img src="img/fingerprint-light.png" alt=""></button>' +
-          '<div class="login__orb-label">USE BIOMETRICS</div>' +
-          '<button class="login__usebtn" data-act="topin"><u>Use PIN</u></button>';
+          '<div class="login__orb-label">' + Lang.t("use_biometrics") + "</div>" +
+          '<button class="login__usebtn" data-act="topin"><u>' + Lang.t("use_pin") + "</u></button>";
         actions.innerHTML = "";
         kp.innerHTML = "";
         keypadOpen = false;
@@ -64,9 +64,9 @@
         '<div class="login__orb-label" style="margin-top:28px">OR</div>' +
         '<button class="login__orb" data-act="bio" aria-label="Use biometrics" style="margin-top:16px">' +
           '<img src="img/fingerprint-light.png" alt=""></button>' +
-        '<div class="login__orb-label">USE BIOMETRICS</div>';
+        '<div class="login__orb-label">' + Lang.t("use_biometrics") + "</div>";
       actions.innerHTML = keypadOpen ? "" :
-        '<button class="btn btn--grad btn--block" data-act="login">Login ' + Icon("arrowRight", 20) + "</button>";
+        '<button class="btn btn--grad btn--block" data-act="login">' + Lang.t("login") + " " + Icon("arrowRight", 20) + "</button>";
 
       var err = el._pinError;
       slot.innerHTML =
@@ -205,13 +205,7 @@
       if (act === "login") { mode = "pin"; renderField(); openKeypad(); return; }
       if (act === "bell") { UI.toast("No new notifications"); return; }
       if (act === "other") { Router.push("otherServices"); return; }
-      if (act === "lang") {
-        UI.selectSheet("Select Language", ["አማርኛ", "English"], function (v) {
-          Store.set({ language: v === "English" ? "en" : "am" });
-          UI.toast(v + " selected");
-        });
-        return;
-      }
+      if (act === "lang") { Misc.languageSheet(); return; }
     });
 
     el.addEventListener("input", function (e) {
@@ -280,6 +274,8 @@
     paint();
 
     el.addEventListener("click", function (e) {
+      var to = e.target.closest("[data-to]");
+      if (to) { Router.push(to.dataset.to); return; }
       var noor = e.target.closest('[data-act="noor"]');
       if (noor) {
         Store.set({ noor: !Store.get().noor });

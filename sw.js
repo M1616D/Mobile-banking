@@ -2,7 +2,7 @@
    Cache-first: every asset is stored on install so the app runs with no
    network at all. Opening index.html straight from disk works even without
    this worker, because nothing in the app ever requests a remote resource. */
-const CACHE = 'cbe-mobile-69242ac6a9';
+const CACHE = 'cbe-mobile-46e0c83c43';
 const ASSETS = [
   "css/base.css",
   "css/components.css",
@@ -11,6 +11,7 @@ const ASSETS = [
   "img/appicon-context.jpg",
   "img/appicon-dark.jpg",
   "img/appicon.jpg",
+  "img/apple-touch-icon.png",
   "img/brands/aaland.png",
   "img/brands/aarev.png",
   "img/brands/aatma.png",
@@ -92,6 +93,9 @@ const ASSETS = [
   "img/cbe-logo.png",
   "img/fingerprint-dark.png",
   "img/fingerprint-light.png",
+  "img/icon-192.png",
+  "img/icon-512.png",
+  "img/icon-maskable-512.png",
   "img/map.png",
   "img/stamp.png",
   "index.html",
@@ -100,6 +104,7 @@ const ASSETS = [
   "js/core/capture.js",
   "js/core/fees.js",
   "js/core/guard.js",
+  "js/core/i18n.js",
   "js/core/icons.js",
   "js/core/qr.js",
   "js/core/router.js",
