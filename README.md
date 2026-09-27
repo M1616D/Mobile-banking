@@ -19,7 +19,7 @@ python3 -m http.server 8000     # then browse to http://localhost:8000/
 | `css/base.css` | reset, phone shell, screen stack and transitions |
 | `css/components.css` | app bar, list rows, tiles, fields, sheets, keypads |
 | `css/screens.css` | per-screen layout |
-| `js/core/` | `util`, `icons`, `qr`, `fees`, `store`, `brands`, `guard`, `ui`, `router`, `capture` |
+| `js/core/` | `util`, `icons`, `qr`, `fees`, `store`, `brands`, `guard`, `ui`, `router`, `install`, `capture` |
 | `js/screens/` | `auth`, `home`, `transactions`, `transfer`, `receipt`, `receive`, `services`, `settings`, `misc` |
 | `img/` | every runtime asset, extracted from the design folder with clean names |
 | `sw.js` | generated service worker – precaches all 112 assets for offline use |
@@ -53,6 +53,12 @@ SVG `foreignObject` rasteriser with the styles and images frozen inline.
 
 **Documents.** The official statement is laid out at 720 units wide and scaled
 into the phone, which is how the reference shows it.
+
+**Install prompt.** The build is installable (manifest + service worker). The
+only place the app ever invites you to install it is a banner on the login
+screen, shown once the browser reports an install prompt on a device that has
+not decided yet. Dismissing it — or installing — is remembered per device, and
+no other screen carries an install surface.
 
 ## Regenerating assets
 

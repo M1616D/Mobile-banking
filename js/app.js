@@ -66,6 +66,31 @@
     });
   }
 
+  /* --------------------------------------------- unmapped buttons ------
+     Every button must respond. Each screen wires its own controls through
+     the attributes below; anything that reaches the document without one of
+     them has no page or route behind it, so it answers with the generic error
+     toast instead of sitting there dead. This runs on the bubble phase, after
+     every screen handler, so it can only ever speak for buttons nobody owned. */
+  var WIRED_ATTRS = [
+    "data-act", "data-to", "data-go", "data-nav", "data-key", "data-select",
+    "data-tab", "data-i", "data-f", "data-id", "data-pick", "data-quickitem",
+    "data-n", "data-ussd", "data-bio", "data-mode", "data-os", "data-lang",
+    "data-close", "data-version", "data-install", "data-dismiss"
+  ];
+
+  function installButtonFallback() {
+    document.addEventListener("click", function (e) {
+      var btn = e.target.closest && e.target.closest("button");
+      if (!btn || btn.disabled) return;
+      if (btn.closest("a[href]")) return;
+      for (var i = 0; i < WIRED_ATTRS.length; i++) {
+        if (btn.closest("[" + WIRED_ATTRS[i] + "]")) return;
+      }
+      UI.toast("Something went wrong, try again later.");
+    });
+  }
+
   /* --------------------------------------------------------- offline ----- */
   function installServiceWorker() {
     if (!("serviceWorker" in navigator)) return;
@@ -91,8 +116,10 @@
   function boot() {
     Guard.init();
     Misc.init();
+    if (global.Install) Install.init();
     installBackHandling();
     installBackButtons();
+    installButtonFallback();
     splash();
 
     // screens that must never be re-rendered from a stale stack

@@ -10,7 +10,7 @@ CORE = [
     "js/app.js",
     "js/core/util.js", "js/core/icons.js", "js/core/qr.js", "js/core/fees.js",
     "js/core/store.js", "js/core/i18n.js", "js/core/brands.js", "js/core/guard.js",
-    "js/core/ui.js", "js/core/router.js", "js/core/capture.js",
+    "js/core/ui.js", "js/core/router.js", "js/core/install.js", "js/core/capture.js",
     "js/screens/auth.js", "js/screens/home.js", "js/screens/transactions.js",
     "js/screens/transfer.js", "js/screens/receipt.js", "js/screens/receive.js",
     "js/screens/services.js", "js/screens/settings.js", "js/screens/misc.js",

@@ -297,23 +297,40 @@
    Numbers below are measured off ui/recite/downloded recite.jpg, which is the
    2x export of this screen: purple band 270 native (135 CSS), sheet top 135,
    sheet corner radius 36, check disc 90 straddling the seam, grey card from
-   220.5 to 648, summary serif 15.5px on a 22.75px line. */
+   220.5 to 648, summary serif 15.5px on a 22.75px line.
+   The header text is a real flex column with fixed line boxes: the export
+   rasterises this tree through an SVG <foreignObject>, so nothing may depend
+   on margin collapsing or on a <span> being blockified into a flex item. */
 .receipt { background: #fff; min-height: 100%; position: relative; }
 .receipt__head {
   background: var(--purple);
   color: #fff;
   height: 135px;
   padding: calc(28px + var(--sat)) 19px 0;
-  display: flex; align-items: center; gap: 12px;
+  display: flex; align-items: center; gap: 8px;
   position: relative;
 }
-.receipt__head-title { font-size: 17px; font-weight: 700; letter-spacing: .2px; }
-.receipt__head-sub { font-size: 13px; color: rgba(255, 255, 255, .84); margin-top: 6px; }
+.receipt__head-txt {
+  display: flex; flex-direction: column; justify-content: center;
+  flex: 0 1 auto; min-width: 0;
+}
+.receipt__head-title {
+  font-size: 17px; font-weight: 700; letter-spacing: .2px;
+  line-height: 20px; white-space: nowrap;
+}
+.receipt__head-sub {
+  font-size: 13px; color: rgba(255, 255, 255, .84);
+  line-height: 16px; margin-top: 2px; white-space: nowrap;
+}
 .receipt__head-act {
   position: absolute; right: 4px; top: calc(52px + var(--sat));
   color: #fff;
 }
-.receipt__shield { color: #fff; display: grid; place-items: center; }
+/* the shield glyph carries its own side bearing; the negative margin pulls it
+   back so the mark starts on the header padding, as the reference export has
+   it, and the label keeps its measured 53.5 CSS px left edge */
+.receipt__shield { color: #fff; display: grid; place-items: center; margin-left: -4px; }
+.receipt__shield svg { display: block; }
 
 .receipt__sheet {
   background: #fff;
@@ -349,10 +366,11 @@
 }
 .receipt__summary b { font-weight: 700; }
 .receipt__qr { display: grid; place-items: center; padding: 4px 0 0; }
-/* The printed code sits straight on the card: no frame, no border, pure black
-   modules on white so it scans and photographs cleanly. */
-.receipt__qrbox { display: grid; place-items: center; background: #fff; border: 0; padding: 0; }
-.receipt__qrbox canvas { display: block; image-rendering: pixelated; }
+/* The code sits straight on the card: no frame, no plate, pure black modules
+   over whatever the card shows through, so it reads as part of the receipt
+   rather than a pasted white box. */
+.receipt__qrbox { display: grid; place-items: center; background: transparent; border: 0; padding: 0; }
+.receipt__qrbox canvas { display: block; background: transparent; image-rendering: pixelated; }
 /* the saved / downloaded receipt frames the code in a hairline rule on white;
    the class is applied only while the export clone is taken */
 .receipt__qrbox.is-download {

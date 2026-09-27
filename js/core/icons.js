@@ -121,6 +121,15 @@
     starSquare: ["M12 3.2l2.5 5.4 5.9.7-4.4 4 1.2 5.8L12 16.4l-5.2 2.7 1.2-5.8-4.4-4 5.9-.7z"],
     moneyBagSolid: ["M9 3h6l-1.5 3h-3z", "M12 6c-3.4 0-6 2.9-6 7.1 0 4.7 2.4 8.9 6 8.9s6-4.2 6-8.9C18 8.9 15.4 6 12 6z", "M12 10.4c-1.2 0-2.1.7-2.1 1.7h1.5c0-.3.3-.5.7-.5s.7.2.7.5c0 .7-2.9.4-2.9 2.6 0 1 .8 1.7 2.1 1.7v.6h1v-.6c1.2 0 2.1-.7 2.1-1.7h-1.5c0 .3-.3.5-.7.5s-.7-.2-.7-.5c0-.7 2.9-.4 2.9-2.6 0-1-.8-1.7-2.1-1.7v-.6h-1z"],
     govSolid: ["M12 3l9 5.5H3z", "M5 10h2.6v9H5z", "M10.7 10h2.6v9h-2.6z", "M16.4 10H19v9h-2.6z", "M3 20.4h18V22H3z"],
+    /* the receipt header mark: a solid shield with the tick knocked out.
+       Two subpaths filled even-odd, exactly how the reference prints it. */
+    shieldCheckSolid: {
+      rule: "evenodd",
+      d: [
+        "M12 1.8L3 5.3v6.2c0 6 3.9 10.4 9 11.6 5.1-1.2 9-5.6 9-11.6V5.3z",
+        "M8.713 11.587L10.673 13.547 15.761 8.114 17.439 9.686 10.727 16.853 7.087 13.213z"
+      ]
+    },
     walletSolid: ["M3 8.5A2.5 2.5 0 0 1 5.5 6H17a2 2 0 0 1 2 2v1H5.5A2.5 2.5 0 0 0 3 11.5z", "M3 11.5A2.5 2.5 0 0 1 5.5 9H21v9a2 2 0 0 1-2 2H5.5A2.5 2.5 0 0 1 3 17.5z", "M17 13.5h.01"],
     shareSolid: ["M17 8.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6z", "M6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z", "M17 21.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6z", "M8.6 13.4l5.8 3.1-.7 1.3-5.8-3z", "M13.7 7.2l.7 1.3 5.8-3.1-.7-1.3z"]
   };
@@ -151,8 +160,14 @@
     var stroked = S[name];
     var body, attrs;
     if (filled) {
-      attrs = 'fill="currentColor" stroke="none"';
-      body = filled.map(function (d) { return '<path d="' + d + '"/>'; }).join("");
+      /* a filled glyph may carry its own fill-rule, and a knocked-out shape
+         needs its subpaths inside ONE path for that rule to apply */
+      var isRule = !Array.isArray(filled) && !!filled.rule;
+      var paths = isRule ? filled.d : filled;
+      attrs = 'fill="currentColor" stroke="none"' + (isRule ? ' fill-rule="' + filled.rule + '"' : "");
+      body = isRule
+        ? '<path d="' + paths.join(" ") + '"/>'
+        : paths.map(function (d) { return '<path d="' + d + '"/>'; }).join("");
     } else {
       attrs = 'fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"';
       body = (stroked || S.help || ["M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z"])

@@ -35,11 +35,11 @@
     var el = UI.h('<div class="screen">' +
       '<div class="body receipt" data-scroll>' +
         '<div class="receipt__head">' +
-          '<span class="receipt__shield">' + Icon("shieldCheck", 27) + "</span>" +
-          '<span class="receipt__head-txt">' +
+          '<span class="receipt__shield">' + Icon("shieldCheckSolid", 30) + "</span>" +
+          '<div class="receipt__head-txt">' +
             '<div class="receipt__head-title">Thank you</div>' +
             '<div class="receipt__head-sub">Success</div>' +
-          "</span>" +
+          "</div>" +
           '<button class="iconbtn receipt__head-act" data-act="screenshot" aria-label="Save receipt">' +
             Icon("screenshot", 24) + "</button>" +
         "</div>" +
@@ -67,12 +67,13 @@
       "</div></div>");
 
     el.querySelector("[data-summary]").innerHTML = Fees.summaryHtml(tx);
-    /* no frame, pure black modules on white: the reference prints the code
-       straight on the card.  Snapped to the module grid so no module ends up
-       half a pixel wide, on screen and in the saved image alike. */
+    /* no frame and no white plate: pure black modules straight on the card,
+       so the code reads as part of the receipt instead of a pasted box.
+       Snapped to the module grid so no module ends up half a pixel wide, on
+       screen and in the saved image alike. */
     var qrCanvas = document.createElement("canvas");
     el.querySelector("[data-qr]").appendChild(qrCanvas);
-    QR.draw(qrCanvas, Fees.qrPayload(tx), 132, "M", 2, true, true);
+    QR.draw(qrCanvas, Fees.qrPayload(tx), 132, "M", 2, true, true, null);
 
     el.addEventListener("click", function (e) {
       var act = e.target.closest("[data-act]");

@@ -31,6 +31,8 @@
           '<div class="login__actions" data-slot="actions"></div>' +
           '<div class="login__copyright">© Commercial Bank of Ethiopia</div>' +
         "</div>" +
+        /* the one and only install surface in the app, pinned to this screen */
+        (window.Install ? Install.html() : "") +
         '<div data-slot="keypad"></div>' +
       "</div>");
 
@@ -41,6 +43,9 @@
     var failNext = false;
 
     function renderField() {
+      /* the install banner shares the bottom edge with the keypad, so it steps
+         aside while the keypad is on screen */
+      el.classList.toggle("login--keypad", keypadOpen);
       var slot = el.querySelector('[data-slot="field"]');
       var orb = el.querySelector('[data-slot="orb"]');
       var actions = el.querySelector('[data-slot="actions"]');
@@ -219,7 +224,11 @@
     });
 
     renderField();
-    return { el: el };
+    return {
+      el: el,
+      /* reveal the install banner if the browser offered a prompt (login only) */
+      mount: function () { if (window.Install) Install.mount(el); }
+    };
   }
 
   /* ------------------------------------------------- My Information ----- */

@@ -329,8 +329,10 @@
     return { size: n, modules: m, version: ver, ecc: ecc, mask: best };
   }
 
-  /* render into a canvas, scaled to fit `px` css pixels */
-  function draw(canvas, text, px, eccLevel, quiet, snap, hidpi) {
+  /* render into a canvas, scaled to fit `px` css pixels.
+     `bg` paints the quiet zone: pass null (or "transparent") to leave the
+     canvas transparent so the code sits straight on whatever is behind it. */
+  function draw(canvas, text, px, eccLevel, quiet, snap, hidpi, bg) {
     var qr = encode(text, eccLevel);
     var q = quiet === undefined ? 2 : quiet;
     var total = qr.size + q * 2;
@@ -347,8 +349,11 @@
     var css = snap ? dim : px;
     canvas.style.width = css + "px"; canvas.style.height = css + "px";
     var ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, dim * out, dim * out);
+    var fill = bg === undefined ? "#ffffff" : bg;
+    if (fill && fill !== "transparent") {
+      ctx.fillStyle = fill;
+      ctx.fillRect(0, 0, dim * out, dim * out);
+    }
     ctx.fillStyle = "#000000";
     for (var y = 0; y < qr.size; y++)
       for (var x = 0; x < qr.size; x++)
