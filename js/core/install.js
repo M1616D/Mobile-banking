@@ -73,7 +73,7 @@
           prompt.userChoice.then(function (choice) {
             if (choice && choice.outcome === "accepted") {
               setFlag(INSTALLED_KEY);
-              UI.toast("Mobile Banking App installed");
+              UI.toast("CBE Mobile Banking installed");
             }
           }).catch(function () { });
         }
@@ -90,7 +90,7 @@
       return '<div class="install-banner" data-install-banner hidden>' +
         '<img src="img/icon-192.png" alt="">' +
         '<span class="grow"><b>Install App</b>' +
-          '<small>Add the Mobile Banking App to your home screen</small></span>' +
+          '<small>Add CBE Mobile Banking to your home screen</small></span>' +
         '<button class="btn btn--sm" data-install>Install</button>' +
         '<button class="install-banner__x" data-dismiss aria-label="Not now">' + Icon("x", 18) + "</button>" +
       "</div>";
@@ -134,7 +134,7 @@
           if (n.parentNode) n.parentNode.removeChild(n);
         });
         emit();
-        UI.toast("Mobile Banking App installed");
+        UI.toast("CBE Mobile Banking installed");
       });
     }
   };

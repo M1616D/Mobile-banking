@@ -505,7 +505,7 @@
   Router.define("cards", cardsView);
   Router.define("loan", loanView);
   Router.define("privacy", textPage("Privacy Policy", [
-    ["Your data stays on your device", "The Mobile Banking App keeps your configuration, balance and receipts in local storage on this device. Nothing is uploaded anywhere by this build."],
+    ["Your data stays on your device", "CBE Mobile Banking keeps your configuration, balance and receipts in local storage on this device. Nothing is uploaded anywhere by this build."],
     ["What we store", "Your account holder name, account number, balance, PIN and transfer receipts are stored locally so the app works with no network connection."],
     ["Your control", "Logging out or clearing the app data removes everything that was stored."]
   ]));

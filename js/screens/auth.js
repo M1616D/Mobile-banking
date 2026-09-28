@@ -303,7 +303,7 @@
         UI.sheet({
           title: "Log out?",
           closeBtn: true,
-          body: '<p class="form-note" style="padding-bottom:16px">You will need to authenticate again to use the Mobile Banking App.</p>' +
+          body: '<p class="form-note" style="padding-bottom:16px">You will need to authenticate again to use CBE Mobile Banking.</p>' +
             '<div class="btn-row"><button class="btn btn--quiet" data-close="1">Cancel</button>' +
             '<button class="btn btn--danger" data-act="confirm-logout">Log out</button></div>'
         }).node.addEventListener("click", function (ev) {
