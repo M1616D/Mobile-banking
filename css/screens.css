@@ -475,6 +475,18 @@
 .stmt-foot__a { color: var(--receipt-purple); font-weight: 700; font-size: 11.5px; }
 .stmt-foot__b { color: #6b6b6b; font-size: 11px; margin-top: 8px; }
 .stmt-download { padding: 18px 0 4px; display: grid; place-items: center; }
+/* banner shown above a statement opened from a scanned QR deep link */
+.stmt-verified {
+  display: flex; align-items: center; gap: 8px;
+  margin: 10px 14px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(127, 217, 148, 0.16);
+  color: #1d6b34;
+  font-size: 12.5px; font-weight: 600;
+}
+.stmt-verified svg { flex: 0 0 auto; }
+.stmt-verified span { min-width: 0; }
 
 /* verify receipt form */
 .verify-form { padding: 18px 16px 0; }

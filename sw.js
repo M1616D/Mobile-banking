@@ -2,7 +2,7 @@
    Cache-first: every asset is stored on install so the app runs with no
    network at all. Opening index.html straight from disk works even without
    this worker, because nothing in the app ever requests a remote resource. */
-const CACHE = 'cbe-mobile-7e429de462';
+const CACHE = 'cbe-mobile-a3f2646505';
 const ASSETS = [
   "css/base.css",
   "css/components.css",

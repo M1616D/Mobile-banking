@@ -139,6 +139,20 @@
     if (global.Lang) Lang.apply();
     document.addEventListener("gesturestart", function (e) { e.preventDefault(); });
     document.addEventListener("dblclick", function (e) { e.preventDefault(); }, { passive: false });
+
+    /* a scanned receipt QR deep-links here as #r=v1|... — open the full
+       statement straight away, no login, no stored transaction needed.  The
+       hash is cleared afterwards so a reload or a share never re-enters it. */
+    try {
+      var h = location.hash || "";
+      if (h.charAt(0) === "#") h = h.slice(1);
+      var qrTx = global.Fees && Fees.txFromQr && Fees.txFromQr(h);
+      if (qrTx) {
+        history.replaceState(null, "", location.pathname + location.search);
+        Router.root("statement", { tx: qrTx, verified: true });
+        return;
+      }
+    } catch (e) { /* a malformed hash must never block the normal boot */ }
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);

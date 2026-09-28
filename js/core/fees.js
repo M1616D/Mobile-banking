@@ -106,27 +106,65 @@
       " and Disaster Recovery (5%) of " + U.etb(f.drrf) + ".";
   }
 
-  /* payload encoded into every receipt QR code.
-     It stays under 41 bytes on purpose: that keeps the symbol a 29 module
-     (version 3) code at ECC M — the same grid, scale and quiet zone as the
-     printed reference receipt — while still carrying the receipt's identity
-     (reference number, date, amount, total debited).  The statement page still
-     spells out every field in full. */
-  var QMON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  function qrDate(d) {
-    return U.pad(d.getDate()) + "-" + QMON[d.getMonth()] + "-" + String(d.getFullYear()).slice(2);
+  /* payload encoded into every receipt QR code: a deep link back into the
+     app itself.  Scanning it with any phone camera opens the deployed app,
+     which rebuilds the full detailed statement straight from the data packed
+     in the code — no login, no network, no backend.  v1 fields, pipe
+     separated: r=v1|<id>|<unix-ms>|<amount>|<service>|<vat>|<drrf>|<total>|
+     <sender>|<senderLast4>|<receiver>|<receiverLast4>|<reason>.  Names and
+     reason are URI-encoded; money values are decimal strings of birr. */
+  function qrLinkBase() {
+    if (location.protocol === "http:" || location.protocol === "https:")
+      return location.origin + location.pathname.replace(/[^/]*$/, "");
+    /* opened from disk during development: the QR still points at the live app */
+    return "https://m1616d.github.io/Mobile-banking/";
+  }
+  function qrName(s) {
+    return encodeURIComponent(String(s || "").slice(0, 60));
   }
   function qrPayload(tx) {
     var f = tx.fees;
-    return [
-      "CBE", tx.id, qrDate(new Date(tx.date)),
-      U.money(f.amount), U.money(f.total)
-    ].join("|");
+    var fields = [
+      "v1", tx.id, new Date(tx.date).getTime(),
+      U.money(f.amount), U.money(f.service), U.money(f.vat), U.money(f.drrf), U.money(f.total),
+      qrName(tx.senderName), tx.senderLast4 || "",
+      qrName(tx.receiverName), tx.receiverLast4 || "",
+      qrName(tx.reason || "MB Transfer")
+    ];
+    return qrLinkBase() + "#r=" + fields.join("|");
+  }
+  /* the decoder half: rebuild a tx object from the payload a QR carries
+     (passed without the leading "#").  Returns null for anything that is not
+     a well-formed v1 receipt link, so a foreign QR can never fabricate one. */
+  function txFromQr(payload) {
+    var s = String(payload || "");
+    if (!/^r=v1\|/.test(s)) return null;
+    /* keep "v1" in the split: f[0] is the format version, f[1] the id, ... */
+    var f = s.slice(2).split("|");
+    if (f.length < 13) return null;
+    function birr(v) { var n = parseFloat(v); return isFinite(n) ? Math.round(n * 100) : 0; }
+    function dec(s2) { try { return decodeURIComponent(s2); } catch (e) { return s2; } }
+    var date = parseInt(f[2], 10);
+    var id = String(f[1] || "").slice(0, 40);
+    if (!id || !isFinite(date)) return null;
+    return {
+      id: id,
+      date: date,
+      senderName: dec(f[8]), senderLast4: String(f[9] || "").slice(0, 4),
+      receiverName: dec(f[10]), receiverLast4: String(f[11] || "").slice(0, 4),
+      reason: dec(f[12]) || "MB Transfer",
+      scanned: true,
+      fees: {
+        amount: birr(f[3]), service: birr(f[4]),
+        vat: birr(f[5]), drrf: birr(f[6]), total: birr(f[7])
+      }
+    };
   }
 
   global.Fees = {
     compute: compute, serviceCharge: serviceCharge, inWords: inWords,
     summaryText: summaryText, summaryHtml: summaryHtml, qrPayload: qrPayload,
+    txFromQr: txFromQr,
     CHANNELS: CHANNELS, VAT_RATE: VAT_RATE, DRRF_RATE: DRRF_RATE, TIERS: TIERS
   };
 })(window);

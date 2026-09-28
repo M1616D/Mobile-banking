@@ -32,7 +32,9 @@
      card), while the saved/downloaded copy prints it on a solid white plate.
      Only the `bg` argument of QR.draw differs between the two renders. */
   function drawReceiptQr(canvas, tx, plate) {
-    QR.draw(canvas, Fees.qrPayload(tx), 132, "M", 2, true, true, plate ? "#ffffff" : null);
+    /* the deep-link payload is a denser 53-module code; 106 keeps the module
+       grid on whole pixels (2px per module) as `snap` requires */
+    QR.draw(canvas, Fees.qrPayload(tx), 106, "M", 2, true, true, plate ? "#ffffff" : null);
   }
 
   function receiptView(params) {
@@ -174,6 +176,12 @@
     '<div class="stmt-download"><button class="btn btn--xs" data-act="pdf">Download PDF</button></div>';
   }
 
+  /* verified statements (opened by scanning a receipt QR) get an exit that
+     hands the phone back to its home screen instead of into the banking app */
+  function openAppButton() {
+    return '<div class="stmt-download"><button class="btn btn--xs" data-act="openapp">Open App</button></div>';
+  }
+
   /* The reference statement is a 720px-wide document scaled into the phone
      width; the wrapper height is corrected so the page keeps scrolling right. */
   function fitStatement(el) {
@@ -191,10 +199,15 @@
   function statementView(params) {
     var tx = params.tx;
     var el = UI.h('<div class="screen">' +
-      '<div class="body"><div class="stmt-page">' + statementHtml(tx) + "</div></div></div>");
+      (params.verified
+        ? '<div class="stmt-verified">' + Icon("shieldCheckSolid", 16) +
+          "<span>Verified — this receipt came from a scanned CBE QR code</span></div>"
+        : "") +
+      '<div class="body"><div class="stmt-page">' +
+        statementHtml(tx) + (params.verified ? openAppButton() : "") + "</div></div></div>");
     var canvas = document.createElement("canvas");
     el.querySelector("[data-qr]").appendChild(canvas);
-    QR.draw(canvas, Fees.qrPayload(tx), 72, "M", 1);
+    QR.draw(canvas, Fees.qrPayload(tx), 106, "M", 1);
     fitStatement(el);
     requestAnimationFrame(function () { fitStatement(el); });
     if (window.ResizeObserver) {
@@ -217,8 +230,14 @@
           UI.toast("Receipt PDF downloaded");
         } catch (err) { UI.toast("Could not create the PDF"); }
       }
+      if (e.target.closest('[data-act="openapp"]')) {
+        try { history.replaceState(null, "", location.pathname + location.search); } catch (err) { }
+        location.href = location.origin + location.pathname.replace(/[^/]*$/, "");
+      }
     });
-    return { el: el, secure: true };
+    /* a scanned receipt is verified against nothing, so it must never wear
+       the secure-screen veil that hides it from screenshots */
+    return { el: el, secure: !params.verified };
   }
 
   /* ------------------------------------------------------ saved receipts */
@@ -363,8 +382,8 @@
       ctx.fillText("Transaction Summary", 60, 500);
       wrap(ctx, Fees.summaryText(tx), 60, 550, 600, 40, "#101010", "30px 'Times New Roman', serif");
       var qr = document.createElement("canvas");
-      QR.draw(qr, Fees.qrPayload(tx), 300, "M", 2);
-      ctx.drawImage(qr, 210, 900, 300, 300);
+      QR.draw(qr, Fees.qrPayload(tx), 265, "M", 2);
+      ctx.drawImage(qr, 227, 900, 265, 265);
       ctx.drawImage(el0("img/cbe-logo.png"), 60, 1240, 60, 60);
       ctx.fillStyle = "#2f2440";
       ctx.font = "bold 28px 'Times New Roman', serif";
@@ -417,7 +436,12 @@
   }
 
   function buildPdf(tx) {
-    var f = tx.fees, s = Store.get(), b = bank();
+    var f = tx.fees, b = bank();
+    /* a scanned receipt has no local account behind it — show its receiver as
+       the customer instead of a name the device does not know */
+    var s = tx.scanned
+      ? { holderName: tx.receiverName }
+      : Store.get();
     var W = 360, H = 780;
     var ops = [];
     function txt(x, y, size, text, opts) {
