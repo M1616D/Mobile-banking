@@ -108,8 +108,70 @@
         }
         return;
       }
-      navigator.serviceWorker.register("sw.js").catch(function () { });
+      /* read this *before* registering: a page that is already run by a worker
+         is an update, one that is not is a first install (whose brand new
+         worker broadcasts exactly the same "updated" message). */
+      var hadController = !!navigator.serviceWorker.controller;
+      navigator.serviceWorker.register("sw.js", { updateViaCache: "none" })
+        .then(function (reg) { wireUpdates(reg, hadController); })
+        .catch(function () { });
     } catch (e) { }
+  }
+
+  /* Every deploy rewrites sw.js (its cache name carries a content hash), so
+     the browser installs a new worker, `skipWaiting` + `clients.claim` swap
+     it in at once, and the page reloads onto the new cache.  Without this an
+     already-installed device could keep serving the build it booted with
+     until the worker was unregistered by hand.
+
+     `updateViaCache: "none"` keeps the worker script itself out of the http
+     cache, and the update check runs again whenever the app is brought back
+     to the foreground, which is when a home-screen install actually resumes. */
+  function wireUpdates(reg, hadController) {
+    function found() { if (hadController) showUpdateBar(); }
+    /* the worker broadcasts on activate — the reliable signal that a new
+       build has taken over, skipWaiting or not */
+    if (navigator.serviceWorker.addEventListener) {
+      navigator.serviceWorker.addEventListener("message", function (e) {
+        if (e.data && e.data.type === "cbe-updated") found();
+      });
+    }
+    reg.addEventListener("updatefound", function () {
+      var next = reg.installing;
+      if (!next) return;
+      next.addEventListener("statechange", function () {
+        if (next.state === "activated") found();
+      });
+    });
+    function check() {
+      if (document.visibilityState !== "visible") return;
+      try { reg.update(); } catch (e) { /* offline, or an engine without it */ }
+    }
+    check();
+    document.addEventListener("visibilitychange", check);
+    global.addEventListener("focus", check);
+  }
+
+  /* one dismissible bar per page: the cache is already updated when it shows,
+     so reloading is the whole fix and is left as the user's tap. */
+  function showUpdateBar() {
+    var host = document.getElementById("overlays");
+    if (!host || host.querySelector("[data-update-bar]")) return;
+    var bar = UI.h('<div class="update-bar" data-update-bar>' +
+      '<span class="grow"><b>A new version is ready</b>' +
+        "<small>Reload to get the latest CBE Mobile Banking</small></span>" +
+      '<button class="btn btn--sm" data-update>Update</button>' +
+      '<button class="update-bar__x" data-dismiss aria-label="Later">' + Icon("x", 18) + "</button></div>");
+    bar.addEventListener("click", function (e) {
+      if (e.target.closest("[data-update]")) {
+        var sw = navigator.serviceWorker.controller;
+        if (sw) { try { sw.postMessage({ type: "cbe-skip-waiting" }); } catch (err) { } }
+        location.reload();
+        return;
+      }
+      if (e.target.closest("[data-dismiss]") && bar.parentNode) bar.parentNode.removeChild(bar);
+    });
+    host.appendChild(bar);
   }
 
   /* ------------------------------------------------------------ boot ----- */

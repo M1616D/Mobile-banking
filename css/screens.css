@@ -365,19 +365,21 @@
   color: #101010;
 }
 .receipt__summary b { font-weight: 700; }
-.receipt__qr { display: grid; place-items: center; padding: 4px 0 0; }
-/* The code sits straight on the card: no frame, no plate, pure black modules
-   over whatever the card shows through, so it reads as part of the receipt
-   rather than a pasted white box. */
-.receipt__qrbox { display: grid; place-items: center; background: transparent; border: 0; padding: 0; }
-.receipt__qrbox canvas { display: block; background: transparent; image-rendering: pixelated; }
-/* the saved / downloaded receipt frames the code in a hairline rule on white;
-   the class is applied only while the export clone is taken */
-.receipt__qrbox.is-download {
-  border: 3px solid #7e7e7e;
-  border-radius: 6px;
-  padding: 0;
+.receipt__qr { display: grid; place-items: center; padding: 12px 0 2px; }
+/* The code is printed on a solid white plate inside a thin grey rule, exactly
+   the way the reference receipt frames it: the plate gives the modules their
+   contrast and the rule stops the code bleeding into the summary card behind
+   it.  126px is the reference footprint (its 252px box at the 2x design
+   scale).  The plate is repeated in the canvas pixels by QR.draw so the
+   exported PNG keeps it even if a rasteriser drops css backgrounds. */
+.receipt__qrbox {
+  display: grid; place-items: center;
+  width: 126px; height: 126px;
+  background: #ffffff;
+  border: 2px solid #7e7e7e;
+  border-radius: 8px;
 }
+.receipt__qrbox canvas { display: block; background: #ffffff; image-rendering: pixelated; }
 .receipt__brand {
   display: flex; align-items: center; gap: 10px;
   padding: 9px 0 0;
@@ -470,7 +472,17 @@
 }
 .stmt-word__label { font-size: 11.5px; font-weight: 700; color: #111; }
 .stmt-word__value { font-family: var(--font-serif); font-size: 11px; color: #111; margin-top: 3px; }
-.stmt-qr { flex: 0 0 auto; }
+/* the statement prints the same code on the same white plate inside the same
+   thin rule as the receipt, so the two documents agree */
+.stmt-qr {
+  flex: 0 0 auto;
+  display: grid; place-items: center;
+  background: #ffffff;
+  border: 2px solid #7e7e7e;
+  border-radius: 8px;
+  padding: 4px;
+}
+.stmt-qr canvas { display: block; image-rendering: pixelated; }
 .stmt-foot { text-align: center; padding: 22px 0 34px; }
 .stmt-foot__a { color: var(--receipt-purple); font-weight: 700; font-size: 11.5px; }
 .stmt-foot__b { color: #6b6b6b; font-size: 11px; margin-top: 8px; }

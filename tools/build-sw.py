@@ -17,9 +17,17 @@ CORE = [
 ]
 
 TEMPLATE = """/* CBE Mobile Banking - offline service worker.
-   Cache-first: every asset is stored on install so the app runs with no
-   network at all. Opening index.html straight from disk works even without
-   this worker, because nothing in the app ever requests a remote resource. */
+   Cache-first for assets: every asset is stored on install so the app runs
+   with no network at all.  Opening index.html straight from disk works even
+   without this worker, because nothing in the app ever requests a remote
+   resource.
+
+   Updates: the cache name carries a content hash, so every deploy installs a
+   brand new worker.  `skipWaiting` + `clients.claim` swap it in immediately,
+   activate drops the previous cache, and every open page is then told to
+   reload so an installed device never keeps running the old build.  The
+   document itself is fetched network-first, so even a plain reload cannot
+   serve a stale shell while the new worker is still catching up. */
 const CACHE = 'cbe-mobile-{version}';
 const ASSETS = {assets};
 
@@ -36,12 +44,32 @@ self.addEventListener('activate', (event) => {{
     caches.keys()
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
+      .then(() => self.clients.matchAll({{ type: 'window' }}))
+      .then((clients) => clients.forEach((client) => client.postMessage({{ type: 'cbe-updated', cache: CACHE }})))
   );
 }});
 
 self.addEventListener('fetch', (event) => {{
   const req = event.request;
   if (req.method !== 'GET') return;
+  const path = new URL(req.url).pathname;
+  /* the shell and the manifest are the two things that must never be stale:
+     a navigation or a manifest read goes to the network first when there is
+     one, and falls back to the cached copy so the app still opens with no
+     connection at all.  The manifest also names the installed app, so serving
+     a cached copy could keep an old home-screen label alive for good. */
+  if (req.mode === 'navigate' || path.slice(-13) === 'manifest.json') {{
+    event.respondWith(
+      fetch(req)
+        .then((res) => {{
+          const copy = res.clone();
+          caches.open(CACHE).then((cache) => cache.put(req, copy)).catch(() => {{}});
+          return res;
+        }})
+        .catch(() => caches.match(req).then((hit) => hit || caches.match('index.html')))
+    );
+    return;
+  }}
   event.respondWith(
     caches.match(req).then((hit) => hit || fetch(req)
       .then((res) => {{
@@ -51,6 +79,10 @@ self.addEventListener('fetch', (event) => {{
       }})
       .catch(() => caches.match('index.html')))
   );
+}});
+
+self.addEventListener('message', (event) => {{
+  if (event.data && event.data.type === 'cbe-skip-waiting') self.skipWaiting();
 }});
 """
 

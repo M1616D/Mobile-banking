@@ -28,13 +28,15 @@
   }
 
   /* ------------------------------------------------------- success view --
-     The on-screen receipt keeps the code transparent (it reads as part of the
-     card), while the saved/downloaded copy prints it on a solid white plate.
-     Only the `bg` argument of QR.draw differs between the two renders. */
-  function drawReceiptQr(canvas, tx, plate) {
-    /* the deep-link payload is a denser 53-module code; 106 keeps the module
-       grid on whole pixels (2px per module) as `snap` requires */
-    QR.draw(canvas, Fees.qrPayload(tx), 106, "M", 2, true, true, plate ? "#ffffff" : null);
+     The code is printed on a solid white plate inside a thin grey rule, on
+     screen and in the exported PNG alike, exactly the way the reference
+     receipt frames it.  .receipt__qrbox draws the plate and the rule; it is
+     repeated in the canvas pixels here so the saved raster keeps it even if a
+     rasteriser drops css backgrounds. */
+  function drawReceiptQr(canvas, tx) {
+    /* the deep-link payload is a dense code, so the module grid is snapped to
+       whole device pixels at 2x and the canvas stays inside the 126px plate */
+    QR.draw(canvas, Fees.qrPayload(tx), 112, "M", 2, true, true, "#ffffff");
   }
 
   function receiptView(params) {
@@ -76,13 +78,12 @@
       "</div></div>");
 
     el.querySelector("[data-summary]").innerHTML = Fees.summaryHtml(tx);
-    /* no frame and no white plate: pure black modules straight on the card,
-       so the code reads as part of the receipt instead of a pasted box.
-       Snapped to the module grid so no module ends up half a pixel wide, on
-       screen and in the saved image alike. */
+    /* the code sits on the white plate .receipt__qrbox draws: pure black
+       modules, snapped to the module grid so none ends up half a pixel wide,
+       on screen and in the saved image alike. */
     var qrCanvas = document.createElement("canvas");
     el.querySelector("[data-qr]").appendChild(qrCanvas);
-    drawReceiptQr(qrCanvas, tx, false);
+    drawReceiptQr(qrCanvas, tx);
 
     el.addEventListener("click", function (e) {
       var act = e.target.closest("[data-act]");
@@ -207,7 +208,10 @@
         statementHtml(tx) + (params.verified ? openAppButton() : "") + "</div></div></div>");
     var canvas = document.createElement("canvas");
     el.querySelector("[data-qr]").appendChild(canvas);
-    QR.draw(canvas, Fees.qrPayload(tx), 106, "M", 1);
+    /* the same code as the receipt: white plate, thin rule, and a bitmap
+       snapped to whole device pixels so the scaled document never stretches
+       a 55px raster over 106px and turns it to mush */
+    QR.draw(canvas, Fees.qrPayload(tx), 106, "M", 2, true, true, "#ffffff");
     fitStatement(el);
     requestAnimationFrame(function () { fitStatement(el); });
     if (window.ResizeObserver) {
@@ -316,20 +320,11 @@
     /* Measure the receipt on screen instead of assuming a phone size: a fixed
        360x800 box re-wrapped the text and cropped the bottom of the sheet, so
        the export no longer sat where the eye expects it.  clientWidth keeps
-       the real device width and scrollHeight keeps the whole document. */
+       the real device width and scrollHeight keeps the whole document.
+       The code is already drawn on its white plate, so the capture needs no
+       swap: screen and saved image are the same pixels. */
     var w = Math.round(node.clientWidth) || 360;
     var h = Math.max(Math.round(node.scrollHeight), Math.round(node.clientHeight)) || 800;
-    /* the printed/downloaded copy frames the code in a thin rule; the one on
-       screen stays frameless.  Capture clones the tree synchronously, so the
-       class is removed again in the same tick and never paints. */
-    var qrBox = el.querySelector(".receipt__qrbox");
-    var qrCanvas = qrBox ? qrBox.querySelector("canvas") : null;
-    if (qrBox) qrBox.classList.add("is-download");
-    /* the printed copy needs white *inside* the frame: Capture clones the tree
-       and swaps every live <canvas> for its own bitmap synchronously, so the
-       plate has to be in the canvas pixels before the call and is repainted
-       transparent in the same tick — the screen copy never shows it. */
-    if (qrCanvas) drawReceiptQr(qrCanvas, tx, true);
     var shot = Capture.png(node, {
       width: w,
       height: h,
@@ -337,8 +332,6 @@
       background: "#ffffff",
       hide: [".receipt__actions", ".receipt__close-wrap", ".receipt__head-act"]
     });
-    if (qrCanvas) drawReceiptQr(qrCanvas, tx, false);
-    if (qrBox) qrBox.classList.remove("is-download");
     return shot.then(function (canvas) {
       return Capture.saveCanvas(canvas, name);
     }).then(function () {
@@ -382,7 +375,7 @@
       ctx.fillText("Transaction Summary", 60, 500);
       wrap(ctx, Fees.summaryText(tx), 60, 550, 600, 40, "#101010", "30px 'Times New Roman', serif");
       var qr = document.createElement("canvas");
-      QR.draw(qr, Fees.qrPayload(tx), 265, "M", 2);
+      QR.draw(qr, Fees.qrPayload(tx), 265, "M", 2, true, true, "#ffffff");
       ctx.drawImage(qr, 227, 900, 265, 265);
       ctx.drawImage(el0("img/cbe-logo.png"), 60, 1240, 60, 60);
       ctx.fillStyle = "#2f2440";
