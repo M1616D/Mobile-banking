@@ -10,7 +10,7 @@
    reload so an installed device never keeps running the old build.  The
    document itself is fetched network-first, so even a plain reload cannot
    serve a stale shell while the new worker is still catching up. */
-const CACHE = 'cbe-mobile-0f2e70cf92';
+const CACHE = 'cbe-mobile-a646dc9578';
 const ASSETS = [
   "css/base.css",
   "css/components.css",

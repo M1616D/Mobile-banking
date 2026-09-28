@@ -13,12 +13,25 @@
   transition: opacity .45s ease;
 }
 .splash.is-out { opacity: 0; pointer-events: none; }
-.splash__icon {
-  width: 46%;
-  max-width: 190px;
-  filter: drop-shadow(0 14px 34px rgba(0, 0, 0, .55));
+/* the one logo the loading screen shows: the plate the app icon is built on,
+   at the reference size and roundness, holding the CBE mark */
+.splash__plate {
+  display: grid; place-items: center;
+  width: 36%;
+  max-width: 148px;
+  aspect-ratio: 1 / 1;
+  background: #fff;
+  border-radius: 30%;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .42);
   animation: splashIn .7s cubic-bezier(.2, .8, .3, 1) both;
 }
+.splash__plate img { width: 62%; }
+/* the login screen's own mark waits for that plate to go: two logos must never
+   share the screen, which is what the reference loading screen shows */
+.phone.is-booting .login__logo,
+.phone.is-booting .login__amharic,
+.phone.is-booting .login__bank { opacity: 0; }
+.login__logo, .login__amharic, .login__bank { transition: opacity .45s ease; }
 @keyframes splashIn { from { transform: scale(.86); opacity: 0; } to { transform: none; opacity: 1; } }
 
 /* ---------------------------------------------------------------- login */
@@ -72,11 +85,12 @@
   display: flex; flex-direction: column; align-items: center;
 }
 .login__orb {
-  width: 94px; height: 94px; border-radius: 50%;
+  width: 100px; height: 100px; border-radius: 50%;
   background: radial-gradient(circle at 34% 28%, #9b4bd0 0%, #7a1fa2 55%, #61138a 100%);
-  /* thin coloured ring around the fingerprint glyph, as in the reference */
-  border: 2px solid var(--gold);
-  box-shadow: 0 0 0 5px rgba(122, 31, 162, .16), 0 12px 26px rgba(90, 20, 120, .35), inset 0 -4px 12px rgba(0, 0, 0, .18);
+  /* the reference frames the fingerprint with a pale ring, not a coloured one */
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 1px rgba(97, 19, 138, .14), 0 12px 26px rgba(90, 20, 120, .30),
+    inset 0 -4px 12px rgba(0, 0, 0, .18);
   display: grid; place-items: center;
   color: #fff;
   transition: transform .14s ease;
@@ -365,21 +379,26 @@
   color: #101010;
 }
 .receipt__summary b { font-weight: 700; }
-.receipt__qr { display: grid; place-items: center; padding: 12px 0 2px; }
-/* The code is printed on a solid white plate inside a thin grey rule, exactly
-   the way the reference receipt frames it: the plate gives the modules their
-   contrast and the rule stops the code bleeding into the summary card behind
-   it.  126px is the reference footprint (its 252px box at the 2x design
-   scale).  The plate is repeated in the canvas pixels by QR.draw so the
-   exported PNG keeps it even if a rasteriser drops css backgrounds. */
+.receipt__qr { display: grid; place-items: center; padding: 8px 0 2px; }
+/* The code just sits on the summary card on screen: no plate, no rule — that
+   is how the reference on-screen receipt shows it, and a white box there is
+   what the design does not have.  The downloaded sheet is the one that frames
+   it: .is-download turns the plate and its thin grey rule on for the length of
+   the capture.  The frame is transparent the rest of the time, so switching it
+   on can never move the sheet.  140px is the reference footprint (its 252px
+   code box at the 2x design scale). */
 .receipt__qrbox {
   display: grid; place-items: center;
-  width: 126px; height: 126px;
-  background: #ffffff;
-  border: 2px solid #7e7e7e;
+  width: 140px; height: 140px;
+  border: 2px solid transparent;
   border-radius: 8px;
 }
-.receipt__qrbox canvas { display: block; background: #ffffff; image-rendering: pixelated; }
+.receipt__qrbox.is-download {
+  background: #ffffff;
+  border-color: #7e7e7e;
+}
+.receipt__qrbox.is-download canvas { background: #ffffff; }
+.receipt__qrbox canvas { display: block; image-rendering: pixelated; }
 .receipt__brand {
   display: flex; align-items: center; gap: 10px;
   padding: 9px 0 0;

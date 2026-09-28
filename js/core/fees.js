@@ -109,10 +109,17 @@
   /* payload encoded into every receipt QR code: a deep link back into the
      app itself.  Scanning it with any phone camera opens the deployed app,
      which rebuilds the full detailed statement straight from the data packed
-     in the code — no login, no network, no backend.  v1 fields, pipe
-     separated: r=v1|<id>|<unix-ms>|<amount>|<service>|<vat>|<drrf>|<total>|
-     <sender>|<senderLast4>|<receiver>|<receiverLast4>|<reason>.  Names and
-     reason are URI-encoded; money values are decimal strings of birr. */
+     in the code — no login, no network, no backend.
+
+     v2 fields, pipe separated:
+       r=v2|<id>|<date base36 ms>|<amount>|<sender>|<senderLast4>|
+            <receiver>|<receiverLast4>|<reason>
+     Names and reason are URI-encoded; money is a plain decimal string of
+     birr.  Service charge, VAT, DRRF and the total are the published tariff
+     for the amount, so the reader works them out again instead of the code
+     spelling them out — the fewer bytes the code carries, the fewer modules
+     it needs and the fatter and blacker it prints on the receipt.  v1 codes
+     (the earlier, longer field list) still decode. */
   function qrLinkBase() {
     if (location.protocol === "http:" || location.protocol === "https:")
       return location.origin + location.pathname.replace(/[^/]*$/, "");
@@ -122,11 +129,18 @@
   function qrName(s) {
     return encodeURIComponent(String(s || "").slice(0, 60));
   }
+  /* money inside a code is a plain decimal string: never a thousands
+     separator, which a reader takes for a full stop and turns 13,000.00
+     into 13.00 */
+  function qrMoney(cents) {
+    var n = Math.max(0, Math.round(cents || 0));
+    var frac = n % 100;
+    return Math.floor(n / 100) + "." + (frac < 10 ? "0" : "") + frac;
+  }
   function qrPayload(tx) {
     var f = tx.fees;
     var fields = [
-      "v1", tx.id, new Date(tx.date).getTime(),
-      U.money(f.amount), U.money(f.service), U.money(f.vat), U.money(f.drrf), U.money(f.total),
+      "v2", tx.id, new Date(tx.date).getTime().toString(36), qrMoney(f.amount),
       qrName(tx.senderName), tx.senderLast4 || "",
       qrName(tx.receiverName), tx.receiverLast4 || "",
       qrName(tx.reason || "MB Transfer")
@@ -135,29 +149,40 @@
   }
   /* the decoder half: rebuild a tx object from the payload a QR carries
      (passed without the leading "#").  Returns null for anything that is not
-     a well-formed v1 receipt link, so a foreign QR can never fabricate one. */
+     a well-formed receipt link, so a foreign QR can never fabricate one.
+     v1 codes still read, commas and all. */
   function txFromQr(payload) {
     var s = String(payload || "");
-    if (!/^r=v1\|/.test(s)) return null;
-    /* keep "v1" in the split: f[0] is the format version, f[1] the id, ... */
+    var v = /^r=v2\|/.test(s) ? 2 : (/^r=v1\|/.test(s) ? 1 : 0);
+    if (!v) return null;
+    /* the version tag stays in the split: f[0] is the format version, f[1]
+       the id, f[2] the date, ... */
     var f = s.slice(2).split("|");
-    if (f.length < 13) return null;
-    function birr(v) { var n = parseFloat(v); return isFinite(n) ? Math.round(n * 100) : 0; }
-    function dec(s2) { try { return decodeURIComponent(s2); } catch (e) { return s2; } }
-    var date = parseInt(f[2], 10);
+    if (f.length < (v === 2 ? 9 : 13)) return null;
+    /* Read money as a number, whatever separators a printed code carries:
+       without this a v1 code holding "13,000.00" parsed as 13.00 ETB. */
+    function birr(x) {
+      var n = parseFloat(String(x).replace(/[^0-9.\-]/g, ""));
+      return isFinite(n) ? Math.round(n * 100) : 0;
+    }
+    function dec(x) { try { return decodeURIComponent(x); } catch (e) { return x; } }
     var id = String(f[1] || "").slice(0, 40);
+    var date = v === 2 ? parseInt(f[2], 36) : parseInt(f[2], 10);
     if (!id || !isFinite(date)) return null;
+    var amount = birr(f[3]);
+    /* v2 stores the amount only: the levies are the tariff for that amount */
+    var fees = v === 2
+      ? compute(amount)
+      : { amount: amount, service: birr(f[4]), vat: birr(f[5]), drrf: birr(f[6]), total: birr(f[7]) };
+    var o = v === 2 ? 4 : 8;
     return {
       id: id,
       date: date,
-      senderName: dec(f[8]), senderLast4: String(f[9] || "").slice(0, 4),
-      receiverName: dec(f[10]), receiverLast4: String(f[11] || "").slice(0, 4),
-      reason: dec(f[12]) || "MB Transfer",
+      senderName: dec(f[o]), senderLast4: String(f[o + 1] || "").slice(0, 4),
+      receiverName: dec(f[o + 2]), receiverLast4: String(f[o + 3] || "").slice(0, 4),
+      reason: dec(f[o + 4]) || "MB Transfer",
       scanned: true,
-      fees: {
-        amount: birr(f[3]), service: birr(f[4]),
-        vat: birr(f[5]), drrf: birr(f[6]), total: birr(f[7])
-      }
+      fees: fees
     };
   }
 

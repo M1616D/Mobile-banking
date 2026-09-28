@@ -4,18 +4,24 @@
 (function (global) {
   "use strict";
 
-  /* ---------------------------------------------------------- splash ----- */
+  /* ---------------------------------------------------------- splash -----
+     One logo only: the white plate the app icon is built on, holding the CBE
+     mark.  The login screen is already rendered underneath it, so it keeps
+     its own mark hidden (.phone.is-booting) until the plate has gone — the
+     loading screen must never show two logos at once. */
   function splash() {
-    var node = UI.h('<div class="splash">' +
-      '<div style="display:grid;place-items:center;width:47%;max-width:190px;aspect-ratio:1/1;' +
-        'background:#fff;border-radius:24%;box-shadow:0 18px 44px rgba(0,0,0,.55);' +
-        'animation:splashIn .7s cubic-bezier(.2,.8,.3,1) both">' +
-        '<img src="img/cbe-logo.png" alt="CBE Mobile Banking" style="width:74%">' +
+    var phone = document.getElementById("phone");
+    var node = UI.h('<div class="splash"><div class="splash__plate">' +
+      '<img src="img/cbe-logo.png" alt="CBE Mobile Banking">' +
       "</div></div>");
-    document.getElementById("phone").appendChild(node);
+    phone.appendChild(node);
+    phone.classList.add("is-booting");
     setTimeout(function () {
       node.classList.add("is-out");
-      setTimeout(function () { if (node.parentNode) node.parentNode.removeChild(node); }, 500);
+      setTimeout(function () {
+        if (node.parentNode) node.parentNode.removeChild(node);
+        phone.classList.remove("is-booting");
+      }, 500);
     }, 1150);
   }
 

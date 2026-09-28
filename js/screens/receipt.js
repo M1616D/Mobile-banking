@@ -28,15 +28,16 @@
   }
 
   /* ------------------------------------------------------- success view --
-     The code is printed on a solid white plate inside a thin grey rule, on
-     screen and in the exported PNG alike, exactly the way the reference
-     receipt frames it.  .receipt__qrbox draws the plate and the rule; it is
-     repeated in the canvas pixels here so the saved raster keeps it even if a
-     rasteriser drops css backgrounds. */
+     On screen the code just sits there — no plate, no rule — exactly the way
+     the reference receipt shows it; only the downloaded sheet frames it
+     (.receipt__qrbox.is-download, switched on around the capture).  Nothing
+     is painted behind the modules here, so the code can never bring a white
+     box the design does not have. */
   function drawReceiptQr(canvas, tx) {
-    /* the deep-link payload is a dense code, so the module grid is snapped to
-       whole device pixels at 2x and the canvas stays inside the 126px plate */
-    QR.draw(canvas, Fees.qrPayload(tx), 112, "M", 2, true, true, "#ffffff");
+    /* the module grid is snapped to whole device pixels at 2x, so every
+       module lands on an exact block and reads as a solid black square
+       instead of being resampled into thin, washed-out bars */
+    QR.draw(canvas, Fees.qrPayload(tx), 132, "M", 2, true, true, null);
   }
 
   function receiptView(params) {
@@ -78,9 +79,8 @@
       "</div></div>");
 
     el.querySelector("[data-summary]").innerHTML = Fees.summaryHtml(tx);
-    /* the code sits on the white plate .receipt__qrbox draws: pure black
-       modules, snapped to the module grid so none ends up half a pixel wide,
-       on screen and in the saved image alike. */
+    /* pure black modules, snapped to the module grid so none ends up half a
+       pixel wide; the plate belongs to the saved sheet only. */
     var qrCanvas = document.createElement("canvas");
     el.querySelector("[data-qr]").appendChild(qrCanvas);
     drawReceiptQr(qrCanvas, tx);
@@ -177,12 +177,6 @@
     '<div class="stmt-download"><button class="btn btn--xs" data-act="pdf">Download PDF</button></div>';
   }
 
-  /* verified statements (opened by scanning a receipt QR) get an exit that
-     hands the phone back to its home screen instead of into the banking app */
-  function openAppButton() {
-    return '<div class="stmt-download"><button class="btn btn--xs" data-act="openapp">Open App</button></div>';
-  }
-
   /* The reference statement is a 720px-wide document scaled into the phone
      width; the wrapper height is corrected so the page keeps scrolling right. */
   function fitStatement(el) {
@@ -205,7 +199,7 @@
           "<span>Verified — this receipt came from a scanned CBE QR code</span></div>"
         : "") +
       '<div class="body"><div class="stmt-page">' +
-        statementHtml(tx) + (params.verified ? openAppButton() : "") + "</div></div></div>");
+        statementHtml(tx) + "</div></div></div>");
     var canvas = document.createElement("canvas");
     el.querySelector("[data-qr]").appendChild(canvas);
     /* the same code as the receipt: white plate, thin rule, and a bitmap
@@ -233,10 +227,6 @@
           downloadPdf(tx);
           UI.toast("Receipt PDF downloaded");
         } catch (err) { UI.toast("Could not create the PDF"); }
-      }
-      if (e.target.closest('[data-act="openapp"]')) {
-        try { history.replaceState(null, "", location.pathname + location.search); } catch (err) { }
-        location.href = location.origin + location.pathname.replace(/[^/]*$/, "");
       }
     });
     /* a scanned receipt is verified against nothing, so it must never wear
@@ -321,10 +311,15 @@
        360x800 box re-wrapped the text and cropped the bottom of the sheet, so
        the export no longer sat where the eye expects it.  clientWidth keeps
        the real device width and scrollHeight keeps the whole document.
-       The code is already drawn on its white plate, so the capture needs no
-       swap: screen and saved image are the same pixels. */
+       The downloaded sheet is the one that frames the code: the plate and its
+       rule are switched on for the capture — the clone freezes the computed
+       styles synchronously — and taken off again straight after, so the
+       screen keeps the bare code the reference shows.  Switching the frame on
+       never changes the box size, so nothing in the sheet can shift. */
     var w = Math.round(node.clientWidth) || 360;
     var h = Math.max(Math.round(node.scrollHeight), Math.round(node.clientHeight)) || 800;
+    var qrbox = node.querySelector(".receipt__qrbox");
+    if (qrbox) qrbox.classList.add("is-download");
     var shot = Capture.png(node, {
       width: w,
       height: h,
@@ -333,10 +328,12 @@
       hide: [".receipt__actions", ".receipt__close-wrap", ".receipt__head-act"]
     });
     return shot.then(function (canvas) {
+      if (qrbox) qrbox.classList.remove("is-download");
       return Capture.saveCanvas(canvas, name);
     }).then(function () {
       UI.toast("Receipt saved to your device");
     }).catch(function () {
+      if (qrbox) qrbox.classList.remove("is-download");
       /* last resort: the hand drawn canvas replica */
       try {
         saveReceiptImage(tx);
@@ -375,7 +372,13 @@
       ctx.fillText("Transaction Summary", 60, 500);
       wrap(ctx, Fees.summaryText(tx), 60, 550, 600, 40, "#101010", "30px 'Times New Roman', serif");
       var qr = document.createElement("canvas");
-      QR.draw(qr, Fees.qrPayload(tx), 265, "M", 2, true, true, "#ffffff");
+      QR.draw(qr, Fees.qrPayload(tx), 265, "M", 2, true, true, null);
+      /* this canvas is the downloadable sheet, so it carries the plate and
+         the thin grey rule the on-screen receipt deliberately leaves out */
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(213, 886, 293, 293);
+      ctx.strokeStyle = "#7e7e7e"; ctx.lineWidth = 3;
+      ctx.strokeRect(213, 886, 293, 293);
       ctx.drawImage(qr, 227, 900, 265, 265);
       ctx.drawImage(el0("img/cbe-logo.png"), 60, 1240, 60, 60);
       ctx.fillStyle = "#2f2440";
