@@ -2,8 +2,12 @@
    Base / reset / shell
    ========================================================================= */
 *, *::before, *::after { box-sizing: border-box; }
-html, body { height: 100%; }
-html { -webkit-text-size-adjust: 100%; }
+/* The shell owns the whole viewport: only the scrollers inside a screen ever
+   move, so the bottom tab bar cannot be dragged off its edge by a page scroll
+   — neither by a mobile URL bar collapsing nor by a list scrolled past its
+   end and handing the scroll on to the page. */
+html, body { height: 100%; overflow: hidden; }
+html { -webkit-text-size-adjust: 100%; overscroll-behavior: none; }
 
 body {
   margin: 0;

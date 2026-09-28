@@ -53,6 +53,7 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   scrollbar-width: none;
   display: flex; flex-direction: column; align-items: center;
   width: 100%;
@@ -126,6 +127,9 @@
 .home__scroll {
   flex: 1 1 auto; min-height: 0;
   overflow-y: auto; scrollbar-width: none;
+  /* a scroll that reaches the end of the list stops there: the page behind
+     never moves, so the tab bar underneath stays exactly where it is */
+  overscroll-behavior: contain;
   display: flex; flex-direction: column;
   position: relative;
 }
@@ -576,9 +580,15 @@
 }
 .receive-actions button span { color: var(--ink); }
 
-/* --------------------------------------------------------------- scan qr */
+/* --------------------------------------------------------------- scan qr
+   The viewer is an ordinary flex child, not an absolutely positioned overlay:
+   that keeps the tab bar below it at the bottom of the screen instead of
+   letting it float up to the top, which is where it landed when the viewer
+   was taken out of the flow. */
 .scan {
-  position: absolute; inset: 0;
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
   background: #0b0b0d;
   display: flex; flex-direction: column;
   color: #fff;
