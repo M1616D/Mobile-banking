@@ -10,7 +10,7 @@
       '<div style="display:grid;place-items:center;width:47%;max-width:190px;aspect-ratio:1/1;' +
         'background:#fff;border-radius:24%;box-shadow:0 18px 44px rgba(0,0,0,.55);' +
         'animation:splashIn .7s cubic-bezier(.2,.8,.3,1) both">' +
-        '<img src="img/cbe-logo.png" alt="Mobile Banking App" style="width:74%">' +
+        '<img src="img/cbe-logo.png" alt="CBE Mobile Banking" style="width:74%">' +
       "</div></div>");
     document.getElementById("phone").appendChild(node);
     setTimeout(function () {

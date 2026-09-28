@@ -2,7 +2,7 @@
   "id": "./",
   "name": "CBE Mobile Banking App",
   "short_name": "CBE Mobile Banking App",
-  "description": "Mobile Banking App — Commercial Bank of Ethiopia mobile banking, installable and fully offline.",
+  "description": "CBE Mobile Banking App — Commercial Bank of Ethiopia mobile banking, installable and fully offline.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

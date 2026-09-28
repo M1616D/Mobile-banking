@@ -27,7 +27,14 @@
     };
   }
 
-  /* ------------------------------------------------------- success view -- */
+  /* ------------------------------------------------------- success view --
+     The on-screen receipt keeps the code transparent (it reads as part of the
+     card), while the saved/downloaded copy prints it on a solid white plate.
+     Only the `bg` argument of QR.draw differs between the two renders. */
+  function drawReceiptQr(canvas, tx, plate) {
+    QR.draw(canvas, Fees.qrPayload(tx), 132, "M", 2, true, true, plate ? "#ffffff" : null);
+  }
+
   function receiptView(params) {
     var tx = params.tx;
     var f = tx.fees;
@@ -73,7 +80,7 @@
        screen and in the saved image alike. */
     var qrCanvas = document.createElement("canvas");
     el.querySelector("[data-qr]").appendChild(qrCanvas);
-    QR.draw(qrCanvas, Fees.qrPayload(tx), 132, "M", 2, true, true, null);
+    drawReceiptQr(qrCanvas, tx, false);
 
     el.addEventListener("click", function (e) {
       var act = e.target.closest("[data-act]");
@@ -297,7 +304,13 @@
        screen stays frameless.  Capture clones the tree synchronously, so the
        class is removed again in the same tick and never paints. */
     var qrBox = el.querySelector(".receipt__qrbox");
+    var qrCanvas = qrBox ? qrBox.querySelector("canvas") : null;
     if (qrBox) qrBox.classList.add("is-download");
+    /* the printed copy needs white *inside* the frame: Capture clones the tree
+       and swaps every live <canvas> for its own bitmap synchronously, so the
+       plate has to be in the canvas pixels before the call and is repainted
+       transparent in the same tick — the screen copy never shows it. */
+    if (qrCanvas) drawReceiptQr(qrCanvas, tx, true);
     var shot = Capture.png(node, {
       width: w,
       height: h,
@@ -305,6 +318,7 @@
       background: "#ffffff",
       hide: [".receipt__actions", ".receipt__close-wrap", ".receipt__head-act"]
     });
+    if (qrCanvas) drawReceiptQr(qrCanvas, tx, false);
     if (qrBox) qrBox.classList.remove("is-download");
     return shot.then(function (canvas) {
       return Capture.saveCanvas(canvas, name);
